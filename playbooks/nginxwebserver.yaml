@@ -1,0 +1,33 @@
+---
+- name: Set up Nginx web server and deploy a default web page
+  hosts: all  # Replace with your target group or host name
+  tasks:
+    - name: Install Nginx package
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Start and enable Nginx service
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Create the default index.html page
+      copy:
+        dest: /var/www/html/index.html
+        content: |
+          <html>
+            <head><title>Welcome to Nginx!</title></head>
+            <body>
+              <h1>Hello, World! This is the default page served by Nginx.</h1>
+            </body>
+          </html>
+        mode: '0644'
+
+    - name: Ensure Nginx is running
+      systemd:
+        name: nginx
+        state: restarted
+        enabled: yes

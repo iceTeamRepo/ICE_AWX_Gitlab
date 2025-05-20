@@ -1,0 +1,5 @@
+---
+all:
+  hosts:
+    haproxy:
+      ansible_host: 10.0.10.11
