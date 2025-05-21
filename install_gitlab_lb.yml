@@ -20,7 +20,7 @@
 
     - name: Copy internal HAProxy configuration
       copy:
-        src: templats/internal-haproxy.cfg
+        src: templates/internal-haproxy.cfg
         dest: /etc/haproxy/haproxy.cfg
         owner: root
         group: root
