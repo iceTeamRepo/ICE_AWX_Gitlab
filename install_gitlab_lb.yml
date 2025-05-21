@@ -27,17 +27,7 @@
         mode: '0644'
       delegate_to: haproxy
       run_once: true
-
-    # - name: Copy external HAProxy configuration
-    #   copy:
-    #     src: templates/external-haproxy.cfg
-    #     dest: /etc/haproxy/haproxy.cfg
-    #     owner: root
-    #     group: root
-    #     mode: '0644'
-    #   delegate_to: haproxy-external
-    #   run_once: true
-
+ 
     - name: Restart HAProxy service
       ansible.builtin.systemd:
         name: haproxy
@@ -52,18 +42,3 @@
         enabled: true
       delegate_to: haproxy
       run_once: true
- 
-#  vm_ips_lower = {
-#    rails       = ["10.0.10.10"]
-#    haproxy     = ["10.0.10.11"]
-#    consul      = ["10.0.10.12", "10.0.11.12", "10.0.12.12"] # 3개 이상이여야 함
-#    psql        = ["10.0.10.13", "10.0.11.13"]                # 2개 이상이여야 함
-#    pgbouncer   = ["10.0.10.14"]
-#    redis       = ["10.0.10.15"]
-#    praefect_db = ["10.0.10.16"]
-#    praefect    = ["10.0.10.17"]
-#    gitaly      = ["10.0.10.18"]
-#    prometheus  = ["10.0.10.19"]
-#    tracking    = ["10.0.10.20"]
-#    grafana     = ["10.0.10.21"]
-#  }
