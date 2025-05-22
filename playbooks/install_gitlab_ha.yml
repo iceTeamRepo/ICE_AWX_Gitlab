@@ -25,37 +25,6 @@
       args:
         creates: /etc/apt/sources.list.d/gitlab_gitlab-ee.list
 
-    - name: Ensure /etc/ssh_static exists
-      ansible.builtin.file:
-        path: /etc/ssh_static
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
-
-    - name: Copy SSH keys to /etc/ssh_static
-      ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: "/etc/ssh_static/"
-        owner: root
-        group: root
-        mode: preserve
-        remote_src: yes
-      with_fileglob:
-        - /etc/ssh/ssh_host_*_key*
-
-    - name: Ensure HostKey entries exist in sshd_config
-      ansible.builtin.lineinfile:
-        path: /etc/ssh/sshd_config
-        line: "HostKey /etc/ssh_static/{{ item }}"
-        state: present
-        create: yes
-      loop:
-        - ssh_host_rsa_key
-        - ssh_host_dsa_key
-        - ssh_host_ecdsa_key
-        - ssh_host_ed25519_key
-
     - name: Ensure 'Match User git' block is configured
       ansible.builtin.blockinfile:
         path: /etc/ssh/sshd_config
@@ -67,16 +36,21 @@
           Match all
         create: yes
         state: present
-
-    - name: Temporarily disable swap
-      ansible.builtin.command: swapoff -a
+ 
+    - name: Validate sshd config syntax
+      ansible.builtin.command: sshd -t
       become: true
-    
+
     - name: Reload SSH service
       ansible.builtin.service:
         name: ssh
         state: reloaded
-
+      become: true
+  
+    - name: Temporarily disable swap
+      ansible.builtin.command: swapoff -a
+      become: true
+    
     - name: Install GitLab
       ansible.builtin.apt:
         name: "gitlab-ee=17.10.1-ee.0"
