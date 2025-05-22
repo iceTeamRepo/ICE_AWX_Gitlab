@@ -24,28 +24,6 @@
       ansible.builtin.shell: "curl -s https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.deb.sh | sudo bash"
       args:
         creates: /etc/apt/sources.list.d/gitlab_gitlab-ee.list
-
-    - name: Ensure 'Match User git' block is configured
-      ansible.builtin.blockinfile:
-        path: /etc/ssh/sshd_config
-        marker: "# {mark} ANSIBLE MANAGED BLOCK - GitLab Fast SSH Key Lookup"
-        block: |
-          Match User git
-            AuthorizedKeysCommand /opt/gitlab/embedded/service/gitlab-shell/bin/gitlab-shell-authorized-keys-check git %u %k
-            AuthorizedKeysCommandUser git
-          Match all
-        create: yes
-        state: present
- 
-    - name: Validate sshd config syntax
-      ansible.builtin.command: sshd -t
-      become: true
-
-    - name: Reload SSH service
-      ansible.builtin.service:
-        name: ssh
-        state: reloaded
-      become: true
   
     - name: Temporarily disable swap
       ansible.builtin.command: swapoff -a
