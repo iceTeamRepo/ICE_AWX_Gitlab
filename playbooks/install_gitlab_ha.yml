@@ -27,7 +27,7 @@
 
     - name: Install GitLab
       ansible.builtin.apt:
-        name: "gitlab-ee-17.10.1-ee.0"
+        name: "gitlab-ee=17.10.1-ee.0"
         state: present
 
     - name: Update /etc/gitlab/gitlab.rb
