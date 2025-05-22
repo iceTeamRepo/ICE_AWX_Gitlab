@@ -37,7 +37,7 @@
         owner: root
         group: root
         mode: '0600'
-      regiter: template
+      register: template
 
     - name: Configure GitLab
       ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
