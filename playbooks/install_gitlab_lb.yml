@@ -4,13 +4,7 @@
   become: true
   become_user: root
 
-  tasks:
-    - name: Install HAProxy on RedHat-based systems
-      ansible.builtin.yum:
-        name: haproxy
-        state: latest
-      when: ansible_os_family == "RedHat"
-
+  tasks: 
     - name: Install HAProxy on Debian-based systems
       ansible.builtin.apt:
         name: haproxy
