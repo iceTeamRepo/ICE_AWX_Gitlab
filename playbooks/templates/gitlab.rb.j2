@@ -61,7 +61,6 @@ roles(['consul_role'])
 roles(['patroni_role', 'pgbouncer_role'])
 {% endif %}
 
-
 ## Legend
 ##! The following notations at the beginning of each line may be used to
 ##! differentiate between components of this file and to easily select them using
@@ -1472,6 +1471,12 @@ postgresql['listen_address'] = '0.0.0.0'
 ##! on an existing installation. See https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/3606 for more details.
 # postgresql['username'] = "gitlab-psql"
 # postgresql['group'] = "gitlab-psql"
+
+{% if 'psql' in inventory_hostname %}
+postgresql['username'] = "gitlab-psql"
+postgresql['group'] = "gitlab-psql"
+{% endif %}
+
 ##! `SQL_USER_PASSWORD_HASH` can be generated using the command `gitlab-ctl pg-password-md5 gitlab`
 # postgresql['sql_user_password'] = 'SQL_USER_PASSWORD_HASH'
 {% if 'psql' in inventory_hostname %}
@@ -1569,6 +1574,7 @@ postgresql['trust_auth_cidr_addresses'] = %w(10.0.0.0/16 127.0.0.1/32)
 # postgresql['sql_replication_password'] = "md5 hash of postgresql password" # You can generate with `gitlab-ctl pg-password-md5 <dbuser>`
 
 {% if 'psql' in inventory_hostname %}
+postgresql['sql_replication_user'] = "gitlab_replicator"
 postgresql['sql_replication_password'] = 'e6808701e3f62b097fafd5a5b77f7d07'
 {% endif %}
 
@@ -3387,11 +3393,9 @@ pgbouncer['databases'] = {
 ## Leave unassined to use PostgreSQL's default values.
 # patroni['postgresql']['wal_keep_segments'] = 8
 # patroni['postgresql']['max_wal_senders'] = 5
-{% if 'psql' in inventory_hostname %}
-patroni['postgresql']['max_wal_senders'] = 5
-{% endif %}
 # patroni['postgresql']['max_replication_slots'] = 5
 {% if 'psql' in inventory_hostname %}
+patroni['postgresql']['max_wal_senders'] = 5
 patroni['postgresql']['max_replication_slots'] = 4
 {% endif %}
 
@@ -3418,6 +3422,13 @@ patroni['postgresql']['max_replication_slots'] = 4
 ## Each item can be an hostname, IP address, or CIDR address.
 ## All hosts are allowed if this is unset.
 # patroni['allowlist'] = []
+{% if 'psql' in inventory_hostname %}
+patroni['allowlist'] = %w[
+  127.0.0.1/32
+  10.0.10.13/32 10.0.11.13/32
+]
+{% endif %}
+
 # patroni['allowlist_include_members'] = false
 
 ## The username and password to use for basic auth on write commands to the
