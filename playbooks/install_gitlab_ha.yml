@@ -58,6 +58,20 @@
         sudo gitlab-ctl hup pgbouncer
       when: inventory_hostname.startswith('pgbouncer') 
 
+    - name: Create Praefect DB role
+      ansible.builtin.shell: |
+        /opt/gitlab/embedded/bin/psql -U gitlab-psql -h "127.0.0.1" -d template1 <<EOF
+        CREATE ROLE praefect WITH LOGIN CREATEDB PASSWORD 'praefectpassword';
+        EOF
+      when: inventory_hostname == 'praefect_db'
+
+    - name: Create Praefect database
+      ansible.builtin.shell: |
+        PGPASSWORD=praefectpassword /opt/gitlab/embedded/bin/psql -U praefect -h "127.0.0.1" -d template1 <<EOF
+        CREATE DATABASE praefect_production WITH ENCODING=UTF8;
+        EOF
+      when: inventory_hostname == 'praefect_db'
+      
     - name: Check GitLab status
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
