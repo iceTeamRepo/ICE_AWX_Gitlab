@@ -52,6 +52,16 @@
       ansible.builtin.command: "/opt/gitlab/bin/gitlab-ctl restart"
       register: restart_output
 
+    - name: Create .pgpass and reload consul if hostname is pgbouncer
+      ansible.builtin.shell: |
+        echo -e "pgbouncerpassword\npgbouncerpassword" | sudo gitlab-ctl write-pgpass \
+          --host 127.0.0.1 \
+          --database pgbouncer \
+          --user pgbouncer \
+          --hostuser gitlab-consul
+        sudo gitlab-ctl hup pgbouncer
+      when: inventory_hostname.startswith('pgbouncer') 
+
     - name: Check GitLab status
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
@@ -73,5 +83,5 @@
 
 # PGBouncer 후처리
 # gitlab-ctl write-pgpass --host 127.0.0.1 --database pgbouncer --user pgbouncer --hostuser gitlab-consul
-# gitlab-ctl pgb-console # You will be prompted for PGBOUNCER_PASSWORD (pgbouncerpassword)
+# gitlab-ctl pgb-console #  pgbouncerpassword
 # show databases ; show clients ;
