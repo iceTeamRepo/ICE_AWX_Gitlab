@@ -58,4 +58,8 @@
     - debug:
         var: status_output.stdout_lines
 
-    # sudo /opt/gitlab/embedded/bin/consul members
+# Consul 확인
+# sudo /opt/gitlab/embedded/bin/consul members
+
+# PSQL 확인
+#gitlab-ctl patroni members

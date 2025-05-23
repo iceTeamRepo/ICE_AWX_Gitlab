@@ -57,6 +57,11 @@ external_url 'http://gitlab.example.com'
 roles(['consul_role'])
 {% endif %}
 
+{% if 'psql' in inventory_hostname %}
+roles(['patroni_role', 'pgbouncer_role'])
+{% endif %}
+
+
 ## Legend
 ##! The following notations at the beginning of each line may be used to
 ##! differentiate between components of this file and to easily select them using
@@ -760,6 +765,10 @@ roles(['consul_role'])
 gitlab_rails['auto_migrate'] = false
 {% endif %}
 
+{% if 'psql' in inventory_hostname %}
+gitlab_rails['auto_migrate'] = false
+{% endif %}
+
 #### This is advanced feature used by large gitlab deployments where loading
 #### whole RAILS env takes a lot of time.
 # gitlab_rails['rake_cache_clear'] = true
@@ -1431,6 +1440,11 @@ gitlab_rails['auto_migrate'] = false
 ###! after reconfigure in order for the changes to take effect.
 # postgresql['enable'] = true
 # postgresql['listen_address'] = nil
+{% if 'psql' in inventory_hostname %}
+postgresql['listen_address'] = '0.0.0.0'
+{% endif %}
+
+
 # postgresql['port'] = 5432
 
 ## Only used when Patroni is enabled. This is the port that PostgreSQL responds to other
@@ -1460,6 +1474,9 @@ gitlab_rails['auto_migrate'] = false
 # postgresql['group'] = "gitlab-psql"
 ##! `SQL_USER_PASSWORD_HASH` can be generated using the command `gitlab-ctl pg-password-md5 gitlab`
 # postgresql['sql_user_password'] = 'SQL_USER_PASSWORD_HASH'
+{% if 'psql' in inventory_hostname %}
+postgresql['sql_user_password'] = 'b36be1b7c2820b8ae7123cb7a1c72a32'
+{% endif %}
 # postgresql['uid'] = nil
 # postgresql['gid'] = nil
 # postgresql['shell'] = "/bin/sh"
@@ -1469,6 +1486,10 @@ gitlab_rails['auto_migrate'] = false
 # postgresql['max_connections'] = 400
 # postgresql['md5_auth_cidr_addresses'] = []
 # postgresql['trust_auth_cidr_addresses'] = []
+{% if 'psql' in inventory_hostname %}
+postgresql['trust_auth_cidr_addresses'] = %w(10.0.0.0/16 127.0.0.1/32)
+{% endif %}
+
 # postgresql['wal_buffers'] = "-1"
 # postgresql['autovacuum_max_workers'] = "3"
 # postgresql['autovacuum_freeze_max_age'] = "200000000"
@@ -1546,6 +1567,11 @@ gitlab_rails['auto_migrate'] = false
 ### Replication settings
 # postgresql['sql_replication_user'] = "gitlab_replicator"
 # postgresql['sql_replication_password'] = "md5 hash of postgresql password" # You can generate with `gitlab-ctl pg-password-md5 <dbuser>`
+
+{% if 'psql' in inventory_hostname %}
+postgresql['sql_replication_password'] = 'e6808701e3f62b097fafd5a5b77f7d07'
+{% endif %}
+
 # postgresql['wal_keep_segments'] = 10
 # postgresql['max_standby_archive_delay'] = "30s"
 # postgresql['max_standby_streaming_delay'] = "30s"
@@ -2490,6 +2516,10 @@ gitlab_rails['auto_migrate'] = false
 node_exporter['listen_address'] = '0.0.0.0:9100'
 {% endif %}
 
+{% if 'psql' in inventory_hostname %}
+node_exporter['listen_address'] = '0.0.0.0:9100'
+{% endif %}
+
 ##! Service name used to register Node Exporter as a Consul service
 # node_exporter['consul_service_name'] = 'node-exporter'
 ##! Semantic metadata used when registering Node Exporter as a Consul service
@@ -2533,6 +2563,9 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 #  'collector.postmaster' => true
 # }
 # postgres_exporter['listen_address'] = 'localhost:9187'
+{% if 'psql' in inventory_hostname %}
+postgres_exporter['listen_address'] = '0.0.0.0:9187'
+{% endif %}
 # postgres_exporter['env_directory'] = '/opt/gitlab/etc/postgres-exporter/env'
 # postgres_exporter['env'] = {
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
@@ -3139,6 +3172,7 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 # geo_postgresql['dir'] = '/var/opt/gitlab/geo-postgresql'
 # geo_postgresql['pgbouncer_user'] = nil
 # geo_postgresql['pgbouncer_user_password'] = nil
+
 ##! `SQL_USER_PASSWORD_HASH` can be generated using the command `gitlab-ctl pg-password-md5 gitlab`
 # geo_postgresql['sql_user_password'] = 'SQL_USER_PASSWORD_HASH'
 # geo_postgresql['log_directory'] = '/var/log/gitlab/geo-postgresql'
@@ -3209,6 +3243,16 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 #   }
 #   ...
 # }
+{% if 'psql' in inventory_hostname %}
+pgbouncer['databases'] = {
+   gitlabhq_production: {
+      host: "127.0.0.1",
+      user: "pgbouncer",
+      password: '2ca64d76cccfe1bc7151bd794169a24c'
+   }
+}
+{% endif %}
+
 # pgbouncer['logfile'] = nil
 # pgbouncer['unix_socket_dir'] = nil
 # pgbouncer['unix_socket_mode'] = '0777'
@@ -3224,6 +3268,9 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 # }
 # postgresql['pgbouncer_user'] = nil
 # postgresql['pgbouncer_user_password'] = nil
+{% if 'psql' in inventory_hostname %}
+ postgresql['pgbouncer_user_password'] = '2ca64d76cccfe1bc7151bd794169a24c'
+{% endif %}
 # pgbouncer['server_reset_query_always'] = 0
 # pgbouncer['server_check_query'] = 'select 1'
 # pgbouncer['server_check_delay'] = 30
@@ -3340,7 +3387,13 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 ## Leave unassined to use PostgreSQL's default values.
 # patroni['postgresql']['wal_keep_segments'] = 8
 # patroni['postgresql']['max_wal_senders'] = 5
+{% if 'psql' in inventory_hostname %}
+patroni['postgresql']['max_wal_senders'] = 5
+{% endif %}
 # patroni['postgresql']['max_replication_slots'] = 5
+{% if 'psql' in inventory_hostname %}
+patroni['postgresql']['max_replication_slots'] = 4
+{% endif %}
 
 ## Permanent replication slots for Streaming Replication
 # patroni['replication_slots'] = {
@@ -3371,6 +3424,11 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 ## Patroni API. If not specified then the API does not use basic auth.
 # patroni['username'] = nil
 # patroni['password'] = nil
+
+{% if 'psql' in inventory_hostname %}
+patroni['username'] = 'patroni'
+patroni['password'] = 'patronipassword'
+{% endif %}
 
 ## TLS configuration for Patroni API. Both certificate and key files are
 ## required to enable TLS. If not specified then the API uses plain HTTP.
@@ -3405,6 +3463,10 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 {% if 'consul' in inventory_hostname %}
 consul['monitoring_service_discovery'] = true
 {% endif %}
+
+{% if 'psql' in inventory_hostname %}
+consul['monitoring_service_discovery'] = true
+{% endif %}
 # consul['node_name'] = nil
 # consul['script_directory'] = '/var/opt/gitlab/consul/scripts'
 # consul['configuration'] = {
@@ -3421,7 +3483,17 @@ consul['configuration'] = {
    retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
 }
 {% endif %}
+
+{% if 'psql' in inventory_hostname %}
+consul['configuration'] = { 
+   retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
+}
+{% endif %}
 # consul['services'] = []
+{% if 'psql' in inventory_hostname %}
+consul['services'] = %w(postgresql)
+{% endif %}
+
 # consul['service_config'] = {
 #   'postgresql' => {
 #     'service' => {
