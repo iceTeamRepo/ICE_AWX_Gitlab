@@ -61,6 +61,10 @@ roles(['consul_role'])
 roles(['patroni_role', 'pgbouncer_role'])
 {% endif %}
 
+{% if 'pgbouncer' in inventory_hostname %}
+roles(['pgbouncer_role'])
+{% endif %}
+
 ## Legend
 ##! The following notations at the beginning of each line may be used to
 ##! differentiate between components of this file and to easily select them using
@@ -2526,6 +2530,11 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 node_exporter['listen_address'] = '0.0.0.0:9100'
 {% endif %}
 
+{% if 'pgbouncer' in inventory_hostname %}
+node_exporter['listen_address'] = '0.0.0.0:9100'
+{% endif %}
+
+
 ##! Service name used to register Node Exporter as a Consul service
 # node_exporter['consul_service_name'] = 'node-exporter'
 ##! Semantic metadata used when registering Node Exporter as a Consul service
@@ -2592,6 +2601,10 @@ postgres_exporter['listen_address'] = '0.0.0.0:9187'
 # pgbouncer_exporter['log_directory'] = "/var/log/gitlab/pgbouncer-exporter"
 # pgbouncer_exporter['log_group'] = nil
 # pgbouncer_exporter['listen_address'] = 'localhost:9188'
+{% if 'pgbouncer' in inventory_hostname %}
+pgbouncer_exporter['listen_address'] = '0.0.0.0:9188'
+{% endif %}
+
 # pgbouncer_exporter['env_directory'] = '/opt/gitlab/etc/pgbouncer-exporter/env'
 # pgbouncer_exporter['env'] = {
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
@@ -3236,6 +3249,9 @@ postgres_exporter['listen_address'] = '0.0.0.0:9187'
 # pgbouncer['dns_zone_check_period'] = '0'
 # pgbouncer['dns_nxdomain_ttl'] = '15.0'
 # pgbouncer['admin_users'] = %w(gitlab-psql postgres pgbouncer)
+{% if 'pgbouncer' in inventory_hostname %}
+pgbouncer['admin_users'] = %w(pgbouncer gitlab-consul)
+{% endif %}
 # pgbouncer['stats_users'] = %w(gitlab-psql postgres pgbouncer)
 # pgbouncer['ignore_startup_parameters'] = 'extra_float_digits'
 # pgbouncer['track_extra_parameters'] = %w(IntervalStyle)
@@ -3272,6 +3288,16 @@ pgbouncer['databases'] = {
 #     'password': MD5_PASSWORD_HASH,
 #   }
 # }
+{% if 'pgbouncer' in inventory_hostname %}
+pgbouncer['users'] = {
+   'gitlab-consul': {
+      password: '30996cf9deb5e6e4888e31f10374cdcc'
+   },
+   'pgbouncer': {
+      password: '2ca64d76cccfe1bc7151bd794169a24c'
+   }
+}
+{% endif %}
 # postgresql['pgbouncer_user'] = nil
 # postgresql['pgbouncer_user_password'] = nil
 {% if 'psql' in inventory_hostname %}
@@ -3478,6 +3504,11 @@ consul['monitoring_service_discovery'] = true
 {% if 'psql' in inventory_hostname %}
 consul['monitoring_service_discovery'] = true
 {% endif %}
+
+{% if 'pgbouncer' in inventory_hostname %}
+consul['monitoring_service_discovery'] = true
+{% endif %}
+
 # consul['node_name'] = nil
 # consul['script_directory'] = '/var/opt/gitlab/consul/scripts'
 # consul['configuration'] = {
@@ -3500,6 +3531,14 @@ consul['configuration'] = {
    retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
 }
 {% endif %}
+
+{% if 'pgbouncer' in inventory_hostname %}
+consul['configuration'] = { 
+   retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
+}
+{% endif %}
+
+
 # consul['services'] = []
 {% if 'psql' in inventory_hostname %}
 consul['services'] = %w(postgresql)
@@ -3521,6 +3560,10 @@ consul['services'] = %w(postgresql)
 #   }
 # }
 # consul['watchers'] = []
+{% if 'pgbouncer' in inventory_hostname %}
+consul['watchers'] = %w(postgresql)
+{% endif %}
+
 #
 # consul['custom_config_dir'] = '/path/to/service/configs/directory'
 #

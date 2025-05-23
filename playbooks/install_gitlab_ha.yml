@@ -62,4 +62,4 @@
 # sudo /opt/gitlab/embedded/bin/consul members
 
 # PSQL 확인
-#gitlab-ctl patroni members
+# sudo gitlab-ctl patroni members
