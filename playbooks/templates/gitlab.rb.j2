@@ -65,6 +65,12 @@ roles(['patroni_role', 'pgbouncer_role'])
 roles(['pgbouncer_role'])
 {% endif %}
 
+{% if 'redis1' in inventory_hostname %}
+roles(['redis_sentinel_role', 'redis_master_role', 'consul_role'])
+{% elif 'redis2' in inventory_hostname  or 'redis3' in inventory_hostname %}
+roles(['redis_sentinel_role', 'redis_replica_role', 'consul_role'])
+{% endif %}
+
 ## Legend
 ##! The following notations at the beginning of each line may be used to
 ##! differentiate between components of this file and to easily select them using
@@ -764,11 +770,8 @@ roles(['pgbouncer_role'])
 
 #### Enable or disable automatic database migrations
 # gitlab_rails['auto_migrate'] = true
-{% if 'consul' in inventory_hostname %}
-gitlab_rails['auto_migrate'] = false
-{% endif %}
 
-{% if 'psql' in inventory_hostname %}
+{% if inventory_hostname | regex_search('consul|psql|redis') %}
 gitlab_rails['auto_migrate'] = false
 {% endif %}
 
@@ -1690,6 +1693,11 @@ postgresql['sql_replication_password'] = 'e6808701e3f62b097fafd5a5b77f7d07'
 # redis['bind'] = '0.0.0.0' # or specify an IP to bind to a single one
 # redis['port'] = 6379
 # redis['password'] = 'redis-password-goes-here'
+{% if 'redis' in inventory_hostname %} 
+redis['bind'] = '0.0.0.0'
+redis['port'] = 6379
+redis['password'] = 'redispassword'
+{% endif %}
 
 ### Redis Sentinel support
 ###! **You need a master replica Redis replication to be able to do failover**
@@ -1706,6 +1714,11 @@ postgresql['sql_replication_password'] = 'e6808701e3f62b097fafd5a5b77f7d07'
 ####!   heartbeat monitoring**
 # redis['master_name'] = 'gitlab-redis'
 # redis['master_ip'] = nil
+{% if 'redis' in inventory_hostname %} 
+redis['master_name'] = 'gitlab-redis'
+redis['master_ip'] = '10.0.10.15'
+{% endif %}
+
 # redis['master_port'] = 6379
 
 #### Support to run redis replicas in a Docker or NAT environment
@@ -1718,6 +1731,9 @@ postgresql['sql_replication_password'] = 'e6808701e3f62b097fafd5a5b77f7d07'
 ####!   redis['password'] to enable the instance to transition to/from
 ####!   master/replica in a failover event.**
 # redis['master_password'] = 'redis-password-goes-here'
+{% if 'redis' in inventory_hostname %} 
+redis['master_password'] = 'redispassword'
+{% endif %}
 
 ####! Increase these values when your replicas can't catch up with master
 # redis['client_output_buffer_limit_normal'] = '0 0 0'
@@ -2522,18 +2538,10 @@ postgresql['sql_replication_password'] = 'e6808701e3f62b097fafd5a5b77f7d07'
 
 ##! Advanced settings. Should be changed only if absolutely needed.
 # node_exporter['listen_address'] = 'localhost:9100'
-{% if 'consul' in inventory_hostname %}
+
+{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis') %}
 node_exporter['listen_address'] = '0.0.0.0:9100'
 {% endif %}
-
-{% if 'psql' in inventory_hostname %}
-node_exporter['listen_address'] = '0.0.0.0:9100'
-{% endif %}
-
-{% if 'pgbouncer' in inventory_hostname %}
-node_exporter['listen_address'] = '0.0.0.0:9100'
-{% endif %}
-
 
 ##! Service name used to register Node Exporter as a Consul service
 # node_exporter['consul_service_name'] = 'node-exporter'
@@ -2558,6 +2566,9 @@ node_exporter['listen_address'] = '0.0.0.0:9100'
 
 ##! Advanced settings. Should be changed only if absolutely needed.
 # redis_exporter['listen_address'] = 'localhost:9121'
+{% if 'redis' in inventory_hostname %} 
+redis_exporter['listen_address'] = '0.0.0.0:9121'
+{% endif %}
 
 ##! Service name used to register Redis Exporter as a Consul service
 # redis_exporter['consul_service_name'] = 'redis-exporter'
@@ -3054,6 +3065,10 @@ pgbouncer_exporter['listen_address'] = '0.0.0.0:9188'
 ##! Bind to all interfaces, uncomment to specify an IP and bind to a single one
 # sentinel['bind'] = '0.0.0.0'
 
+{% if 'redis' in inventory_hostname %} 
+sentinel['bind'] = '0.0.0.0'
+{% endif %}
+
 ##! Uncomment to change default port
 # sentinel['port'] = 26379
 
@@ -3080,6 +3095,11 @@ pgbouncer_exporter['listen_address'] = '0.0.0.0:9188'
 ##!    number (larger than majority) of well connected Sentinels which agree
 ##!    about the master being down.
 # sentinel['quorum'] = 1
+
+# 현재 배포한 redis 인스턴스 수에 따라 quorum 을 설정한다.
+{% if 'redis' in inventory_hostname %} 
+sentinel['quorum'] = 1
+{% endif %}
 
 ### Consider unresponsive server down after x amount of ms.
 # sentinel['down_after_milliseconds'] = 10000
@@ -3497,17 +3517,10 @@ patroni['password'] = 'patronipassword'
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
 # }
 # consul['monitoring_service_discovery'] = false
-{% if 'consul' in inventory_hostname %}
+{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis') %}
 consul['monitoring_service_discovery'] = true
 {% endif %}
 
-{% if 'psql' in inventory_hostname %}
-consul['monitoring_service_discovery'] = true
-{% endif %}
-
-{% if 'pgbouncer' in inventory_hostname %}
-consul['monitoring_service_discovery'] = true
-{% endif %}
 
 # consul['node_name'] = nil
 # consul['script_directory'] = '/var/opt/gitlab/consul/scripts'
@@ -3526,13 +3539,7 @@ consul['configuration'] = {
 }
 {% endif %}
 
-{% if 'psql' in inventory_hostname %}
-consul['configuration'] = { 
-   retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
-}
-{% endif %}
-
-{% if 'pgbouncer' in inventory_hostname %}
+{% if inventory_hostname | regex_search('psql|pgbouncer|redis') %}
 consul['configuration'] = { 
    retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
 }

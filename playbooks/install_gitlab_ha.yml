@@ -50,7 +50,7 @@
 
     - name: Create .pgpass and reload consul if hostname is pgbouncer
       ansible.builtin.shell: |
-        echo -e "{{ pgbouncer_password }}\n{{ pgbouncer_password }}" | sudo gitlab-ctl write-pgpass \
+        echo -e "{{ pgbouncer_password | default('pgbouncerpassword') }}\n{{ pgbouncer_password | default('pgbouncerpassword') }}" | sudo gitlab-ctl write-pgpass \
           --host 127.0.0.1 \
           --database pgbouncer \
           --user pgbouncer \
@@ -66,10 +66,7 @@
         var: reconfigure_output.stdout_lines
 
     - debug:
-        var: status_output.stdout_lines
-
-    - debug:
-        var: restart_output.stdout_lines
+        var: status_output.stdout_lines 
 
 # Consul 확인
 # sudo /opt/gitlab/embedded/bin/consul members
