@@ -55,21 +55,18 @@ external_url 'http://gitlab.example.com'
 # roles ['redis_sentinel_role', 'redis_master_role']
 {% if 'consul' in inventory_hostname %}
 roles(['consul_role'])
-{% endif %}
-
-{% if 'psql' in inventory_hostname %}
+{% elif 'psql' in inventory_hostname %}
 roles(['patroni_role', 'pgbouncer_role'])
-{% endif %}
-
-{% if 'pgbouncer' in inventory_hostname %}
+{% elif 'pgbouncer' in inventory_hostname %}
 roles(['pgbouncer_role'])
-{% endif %}
-
-{% if 'redis1' in inventory_hostname %}
+{% elif 'redis1' in inventory_hostname %}
 roles(['redis_sentinel_role', 'redis_master_role', 'consul_role'])
 {% elif 'redis2' in inventory_hostname  or 'redis3' in inventory_hostname %}
 roles(['redis_sentinel_role', 'redis_replica_role', 'consul_role'])
+{% elif 'praefect_db' in inventory_hostname %} 
+roles(['postgres_role', 'consul_role'])
 {% endif %}
+
 
 ## Legend
 ##! The following notations at the beginning of each line may be used to
@@ -771,7 +768,7 @@ roles(['redis_sentinel_role', 'redis_replica_role', 'consul_role'])
 #### Enable or disable automatic database migrations
 # gitlab_rails['auto_migrate'] = true
 
-{% if inventory_hostname | regex_search('consul|psql|redis') %}
+{% if inventory_hostname | regex_search('consul|psql|redis|praefect_db') %}
 gitlab_rails['auto_migrate'] = false
 {% endif %}
 
@@ -1446,9 +1443,10 @@ gitlab_rails['auto_migrate'] = false
 ###! after reconfigure in order for the changes to take effect.
 # postgresql['enable'] = true
 # postgresql['listen_address'] = nil
-{% if 'psql' in inventory_hostname %}
+{% if inventory_hostname | regex_search('praefect_db|psql') %}
 postgresql['listen_address'] = '0.0.0.0'
 {% endif %}
+
 
 
 # postgresql['port'] = 5432
@@ -1488,6 +1486,8 @@ postgresql['group'] = "gitlab-psql"
 # postgresql['sql_user_password'] = 'SQL_USER_PASSWORD_HASH'
 {% if 'psql' in inventory_hostname %}
 postgresql['sql_user_password'] = 'b36be1b7c2820b8ae7123cb7a1c72a32'
+{% elif 'praefect_db' in inventory_hostname  %}
+postgresql['sql_user_password'] = 'df5940419327425c558d7d8823bc6f29'
 {% endif %}
 # postgresql['uid'] = nil
 # postgresql['gid'] = nil
@@ -1498,7 +1498,7 @@ postgresql['sql_user_password'] = 'b36be1b7c2820b8ae7123cb7a1c72a32'
 # postgresql['max_connections'] = 400
 # postgresql['md5_auth_cidr_addresses'] = []
 # postgresql['trust_auth_cidr_addresses'] = []
-{% if 'psql' in inventory_hostname %}
+{% if inventory_hostname | regex_search('praefect_db|psql') %}
 postgresql['trust_auth_cidr_addresses'] = %w(10.0.0.0/16 127.0.0.1/32)
 {% endif %}
 
@@ -2539,7 +2539,7 @@ redis['master_password'] = 'redispassword'
 ##! Advanced settings. Should be changed only if absolutely needed.
 # node_exporter['listen_address'] = 'localhost:9100'
 
-{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis') %}
+{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis|praefect_db') %}
 node_exporter['listen_address'] = '0.0.0.0:9100'
 {% endif %}
 
@@ -2589,7 +2589,7 @@ redis_exporter['listen_address'] = '0.0.0.0:9121'
 #  'collector.postmaster' => true
 # }
 # postgres_exporter['listen_address'] = 'localhost:9187'
-{% if 'psql' in inventory_hostname %}
+{% if inventory_hostname | regex_search('praefect_db|psql') %}
 postgres_exporter['listen_address'] = '0.0.0.0:9187'
 {% endif %}
 # postgres_exporter['env_directory'] = '/opt/gitlab/etc/postgres-exporter/env'
@@ -3517,7 +3517,7 @@ patroni['password'] = 'patronipassword'
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
 # }
 # consul['monitoring_service_discovery'] = false
-{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis') %}
+{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis|praefect_db') %}
 consul['monitoring_service_discovery'] = true
 {% endif %}
 
@@ -3539,7 +3539,7 @@ consul['configuration'] = {
 }
 {% endif %}
 
-{% if inventory_hostname | regex_search('psql|pgbouncer|redis') %}
+{% if inventory_hostname | regex_search('psql|pgbouncer|redis|praefect_db') %}
 consul['configuration'] = { 
    retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
 }
