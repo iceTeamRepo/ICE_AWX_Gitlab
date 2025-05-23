@@ -48,6 +48,10 @@
       when: template.changed
       register: reconfigure_output
 
+    - name: Restart GitLab
+      ansible.builtin.command: "/opt/gitlab/bin/gitlab-ctl restart"
+      register: restart_output
+
     - name: Check GitLab status
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
@@ -58,8 +62,16 @@
     - debug:
         var: status_output.stdout_lines
 
+    - debug:
+        var: restart_output.stdout_lines
+
 # Consul 확인
 # sudo /opt/gitlab/embedded/bin/consul members
 
 # PSQL 확인
 # sudo gitlab-ctl patroni members
+
+# PGBouncer 후처리
+# gitlab-ctl write-pgpass --host 127.0.0.1 --database pgbouncer --user pgbouncer --hostuser gitlab-consul
+# gitlab-ctl pgb-console # You will be prompted for PGBOUNCER_PASSWORD (pgbouncerpassword)
+# show databases ; show clients ;
