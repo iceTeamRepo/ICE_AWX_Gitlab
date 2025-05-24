@@ -2960,7 +2960,7 @@ praefect['configuration'] = {
   }
    
   database: {
-    host: '{{ hostvars[praefect_db].ansible_host }}'
+    host: '{{ hostvars["praefect_db"].ansible_host }}'
     port: 5432
     user: 'praefect'
     password: 'praefectpassword'
