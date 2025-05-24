@@ -2954,33 +2954,33 @@ praefect['auto_migrate'] = false
 
 {% if inventory_hostname in groups['praefect'] %}
 praefect['configuration'] = {
-  listen_addr: '0.0.0.0:2305'
+  listen_addr: '0.0.0.0:2305',
   auth: {
-    token: 'PRAEFECT_EXTERNAL_TOKEN'
-  }
-   
+    token: 'PRAEFECT_EXTERNAL_TOKEN',
+  },
   database: {
-    host: '{{ hostvars["praefect_db"].ansible_host }}'
-    port: 5432
-    user: 'praefect'
-    password: 'praefectpassword'
-    dbname: 'praefect_production'
-  }
+    host: '{{ hostvars["praefect_db"].ansible_host }}',
+    port: 5432,
+    user: 'praefect',
+    password: 'praefectpassword',
+    dbname: 'praefect_production',
+  },
   virtual_storage: [
     {
-       name: 'default'
-       node: [
-{% for idx, host in groups['gitaly']|sort %}
-         {
-            storage: 'gitaly-{{ idx + 1 }}'
-            address: 'tcp://{{ hostvars[host].ansible_host }}:8075'
-            token: 'PRAEFECT_INTERNAL_TOKEN'
-         },
+      name: 'default',
+      node: [
+{% for host in groups['gitaly'] | sort %}
+        {
+          storage: 'gitaly-{{ loop.index }}',
+          address: 'tcp://{{ hostvars[host].ansible_host }}:8075',
+          token: 'PRAEFECT_INTERNAL_TOKEN'
+        }{% if not loop.last %},{% endif %}
 {% endfor %}
       ]
     }
-  ]
-  prometheus_listen_addr: '0.0.0.0:9652'
+  ],
+  prometheus_listen_addr: '0.0.0.0:9652',
+}
 {% endif %}
 
 ################################################################################
