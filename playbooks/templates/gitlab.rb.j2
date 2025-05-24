@@ -91,7 +91,7 @@ roles(['postgres_role', 'consul_role'])
 ##! Docs: https://gitlab.com/gitlab-org/omnibus-gitlab/blob/master/doc/settings/gitlab.yml.md
 ################################################################################
 {% if inventory_hostname in groups['gitaly'] %}
-gitlab_rails['internal_api_url'] = 'http://'{{ hostvars["haproxy"].ansible_host }}'
+gitlab_rails['internal_api_url'] = 'http://{{ hostvars["haproxy"].ansible_host }}'
 {% endif %}
 
 
