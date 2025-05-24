@@ -3611,14 +3611,22 @@ consul['monitoring_service_discovery'] = true
 {% if 'consul' in inventory_hostname %}
 consul['monitoring_service_discovery'] = true
 consul['configuration'] = {
-   server: true,
-   retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
+  server: true,
+  retry_join: %w(
+{% for host in groups['consul'] | sort %}
+    {{ hostvars[host].ansible_host }}
+{% endfor %}
+  ),
 }
 {% endif %}
 
 {% if inventory_hostname | regex_search('psql|pgbouncer|redis|praefect_db|praefect') %}
 consul['configuration'] = { 
-   retry_join: %w(10.0.10.12 10.0.11.12 10.0.12.12),
+  retry_join: %w(
+{% for host in groups['consul'] | sort %}
+    {{ hostvars[host].ansible_host }}
+{% endfor %}
+  ),
 }
 {% endif %}
 
