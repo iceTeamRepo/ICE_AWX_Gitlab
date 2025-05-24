@@ -1138,7 +1138,7 @@ gitlab_rails['auto_migrate'] = false
 ################################################################################
 
 # gitlab_workhorse['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 gitlab_workhorse['enable'] = false
 {% endif %}
 # gitlab_workhorse['ha'] = false
@@ -1278,7 +1278,7 @@ gitlab_workhorse['enable'] = false
 ################################################################################
 
 # puma['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 puma['enable'] = false
 {% endif %}
 # puma['ha'] = false
@@ -1339,7 +1339,7 @@ puma['enable'] = false
 ##! https://docs.gitlab.com/ee/administration/sidekiq/extra_sidekiq_processes.html
 
 # sidekiq['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 sidekiq['enable'] = false
 {% endif %}
 # sidekiq['log_directory'] = "/var/log/gitlab/sidekiq"
@@ -1451,7 +1451,7 @@ sidekiq['enable'] = false
 ###! change any of these settings, be sure to run `gitlab-ctl restart postgresql`
 ###! after reconfigure in order for the changes to take effect.
 # postgresql['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 postgresql['enable'] = false
 {% endif %}
 
@@ -1638,7 +1638,7 @@ postgresql['sql_replication_password'] = 'e6808701e3f62b097fafd5a5b77f7d07'
 ################################################################################
 
 # redis['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 redis['enable'] = false
 {% endif %}
 # redis['ha'] = false
@@ -1794,7 +1794,7 @@ redis['master_password'] = 'redispassword'
 ################################################################################
 
 # nginx['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 nginx['enable'] = false
 {% endif %}
 # nginx['client_max_body_size'] = '250m'
@@ -2240,7 +2240,7 @@ nginx['enable'] = false
 ##! Define to enable GitLab KAS
 # gitlab_kas_external_url "ws://gitlab.example.com/-/kubernetes-agent/"
 # gitlab_kas['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 gitlab_kas['enable'] = false
 {% endif %}
 ##! Agent configuration for GitLab KAS
@@ -2438,7 +2438,7 @@ gitlab_kas['enable'] = false
 # monitoring_role['enable'] = true
 
 # prometheus['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 prometheus['enable'] = false
 {% endif %}
 # prometheus['monitor_kubernetes'] = true
@@ -2525,7 +2525,7 @@ prometheus['enable'] = false
 ################################################################################
 
 # alertmanager['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 alertmanager['enable'] = false
 {% endif %}
 # alertmanager['home'] = '/var/opt/gitlab/alertmanager'
@@ -2655,7 +2655,7 @@ pgbouncer_exporter['listen_address'] = '0.0.0.0:9188'
 
 
 # gitlab_exporter['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 gitlab_exporter['enable'] = false
 {% endif %}
 # gitlab_exporter['log_directory'] = "/var/log/gitlab/gitlab-exporter"
@@ -2706,7 +2706,7 @@ gitlab_exporter['enable'] = false
 # The gitaly['enable'] option exists for the purpose of cluster
 # deployments, see https://docs.gitlab.com/ee/administration/gitaly/index.html .
 # gitaly['enable'] = true
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 gitaly['enable'] = false
 {% endif %}
 # gitaly['dir'] = "/var/opt/gitlab/gitaly"
@@ -2835,7 +2835,7 @@ gitaly['enable'] = false
 ################################################################################
 
 # praefect['enable'] = false
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 praefect['enable'] = true
 {% endif %}
 # praefect['dir'] = "/var/opt/gitlab/praefect"
@@ -2850,7 +2850,7 @@ praefect['enable'] = true
 # praefect['wrapper_path'] = "/opt/gitlab/embedded/bin/gitaly-wrapper"
 # praefect['auto_migrate'] = true
 
-{% if inventory_hostname == groups['praefect'] | sort | first %}
+{% if inventory_hostname == 'praefect1' %}
 praefect['auto_migrate'] = true
 {% elif inventory_hostname in groups['praefect'] %}
 praefect['auto_migrate'] = false
@@ -2952,27 +2952,35 @@ praefect['auto_migrate'] = false
 #   ],
 # }
 
-{% if inventory_hostname == groups['praefect'] %}
-praefect:
-  configuration:
-    listen_addr: '0.0.0.0:2305'
-    auth:
-      token: 'PRAEFECT_EXTERNAL_TOKEN'
-    database:
-      host: '{{ hostvars[praefect_db].ansible_host }}'
-      port: 5432
-      user: 'praefect'
-      password: 'praefectpassword'
-      dbname: 'praefect_production'
-    virtual_storage:
-      - name: 'default'
-        node:
+{% if inventory_hostname in groups['praefect'] %}
+praefect['configuration'] = {
+  listen_addr: '0.0.0.0:2305'
+  auth: {
+    token: 'PRAEFECT_EXTERNAL_TOKEN'
+  }
+   
+  database: {
+    host: '{{ hostvars[praefect_db].ansible_host }}'
+    port: 5432
+    user: 'praefect'
+    password: 'praefectpassword'
+    dbname: 'praefect_production'
+  }
+  virtual_storage: [
+    {
+       name: 'default'
+       node: [
 {% for idx, host in groups['gitaly']|sort %}
-          - storage: 'gitaly-{{ idx + 1 }}'
+         {
+            storage: 'gitaly-{{ idx + 1 }}'
             address: 'tcp://{{ hostvars[host].ansible_host }}:8075'
             token: 'PRAEFECT_INTERNAL_TOKEN'
+         },
 {% endfor %}
-    prometheus_listen_addr: '0.0.0.0:9652'
+      ]
+    }
+  ]
+  prometheus_listen_addr: '0.0.0.0:9652'
 {% endif %}
 
 ################################################################################
@@ -3569,7 +3577,7 @@ patroni['password'] = 'patronipassword'
 # Consul (EE only)
 ################################################################################
 # consul['enable'] = false
-{% if inventory_hostname == groups['praefect'] %}
+{% if inventory_hostname in groups['praefect'] %}
 consul['enable'] = true
 {% endif %}
 # consul['binary_path'] = '/opt/gitlab/embedded/bin/consul'
