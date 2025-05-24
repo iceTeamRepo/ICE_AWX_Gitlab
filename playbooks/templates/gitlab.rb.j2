@@ -2974,7 +2974,7 @@ praefect['configuration'] = {
           storage: 'gitaly-{{ loop.index }}',
           address: 'tcp://{{ hostvars[host].ansible_host }}:8075',
           token: 'PRAEFECT_INTERNAL_TOKEN'
-        }{% if not loop.last %},{% endif %}
+        },
 {% endfor %}
       ]
     }
