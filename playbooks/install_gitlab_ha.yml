@@ -54,7 +54,7 @@
         mode: '0777'
       when: inventory_hostname.startswith('gitaly')
     ######################################################
-    
+
     - name: Configure GitLab
       ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
       when: template.changed
@@ -129,3 +129,6 @@
 # praefect 확인 
 # sudo GRPC_TRACE=all GRPC_VERBOSITY=DEBUG gitlab-rake gitlab:praefect:check
 # sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
+
+# gitaly 확인
+# sudo gitlab-rake gitlab:gitaly:check 2>&1 | sudo tee /etc/gitlab/gitaly_check
