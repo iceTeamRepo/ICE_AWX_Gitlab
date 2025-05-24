@@ -46,6 +46,15 @@
         mode: '0600'
       register: template
 
+    ### Gitaly 관련 전처리#################################
+    - name: Create /var/opt/gitlab/git-data/repositories directory
+      ansible.builtin.file:
+        path: /var/opt/gitlab/git-data/repositories
+        state: directory
+        mode: '0777'
+      when: inventory_hostname.startswith('gitaly')
+    ######################################################
+    
     - name: Configure GitLab
       ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
       when: template.changed
@@ -116,3 +125,7 @@
 # gitlab-ctl write-pgpass --host 127.0.0.1 --database pgbouncer --user pgbouncer --hostuser gitlab-consul
 # gitlab-ctl pgb-console #  pgbouncerpassword
 # show databases ; show clients ;
+
+# praefect 확인 
+# sudo GRPC_TRACE=all GRPC_VERBOSITY=DEBUG gitlab-rake gitlab:praefect:check
+# sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
