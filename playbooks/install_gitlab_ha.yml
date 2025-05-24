@@ -3,7 +3,10 @@
   hosts: '{{ hostname }}'
   become: true
   become_user: root
-  serial: 1
+  serial: 1 
+  vars:
+    praefect_nodes: "{{ groups['all'] | select('match', '^praefect[0-9]+$') | list }}"
+    praefect_leader: "{{ praefect_nodes | sort | first }}"
 
   tasks:
     - name: Install Pre requsites packages for GitLab
@@ -48,6 +51,12 @@
       when: template.changed
       register: reconfigure_output
 
+    - name: Configure GitLab
+      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl restart"
+      when: template.changed
+      register: restart_output
+
+    ### PgBouncer 관련 후처리##############################
     - name: Create .pgpass and reload consul if hostname is pgbouncer
       ansible.builtin.shell: |
         echo -e "{{ pgbouncer_password | default('pgbouncerpassword') }}\n{{ pgbouncer_password | default('pgbouncerpassword') }}" | sudo gitlab-ctl write-pgpass \
@@ -58,6 +67,7 @@
         sudo gitlab-ctl hup pgbouncer
       when: inventory_hostname.startswith('pgbouncer') 
 
+    ### Praefect DB 관련 후처리##############################
     - name: Create Praefect DB role
       ansible.builtin.shell: |
         /opt/gitlab/embedded/bin/psql -U gitlab-psql -h "127.0.0.1" -d template1 <<EOF
@@ -71,14 +81,28 @@
         CREATE DATABASE praefect_production WITH ENCODING=UTF8;
         EOF
       when: inventory_hostname == 'praefect_db'
+
+    ### Praefect Node 관련 후처리############################## 
+    - name: Skip auto reconfigure
+      file:
+        path: /etc/gitlab/skip-auto-reconfigure
+        state: touch
+      when: inventory_hostname in praefect_nodes
+
+    - name: Re-run gitlab-ctl reconfigure on leader
+      command: gitlab-ctl reconfigure
+      when: inventory_hostname == praefect_leader
       
+    #########################################################
+
     - name: Check GitLab status
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
 
     - debug:
         var: reconfigure_output.stdout_lines
-
+    - debug:
+        var: restart_output.stdout_lines
     - debug:
         var: status_output.stdout_lines 
 
