@@ -1,8 +1,6 @@
 ---
 all:
   hosts:
-    rails:
-      ansible_host: 10.0.10.10
     haproxy:
       ansible_host: 10.0.10.11
     consul1:
@@ -25,6 +23,12 @@ all:
       ansible_host: 10.0.10.17
     gitaly1:
       ansible_host: 10.0.10.18
+    sidekiq:
+      ansible_host: 10.0.10.21
+    rails:
+      ansible_host: 10.0.10.10 
+    prometheus:
+      ansible_host: 10.0.10.19
   children:
     praefect:
       hosts:
