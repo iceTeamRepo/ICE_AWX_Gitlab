@@ -1,5 +1,5 @@
---- 
-- name: Install Gitlab External HA LB
+---
+- name: Install Gitlab External HA LB with self-signed cert
   hosts: "{{ hostname }}"
   become: true
   become_user: root 
@@ -17,18 +17,15 @@
         update_cache: true
       when: ansible_os_family == "Debian"
 
-    - name: Generate a self-signed certificate
-      openssl_certificate:
-        path: "{{ cert_path }}"
-        privatekey_path: "{{ key_path }}"
-        common_name: "{{ domain }}"
-        provider: selfsigned
-        days: 365
-        subject:
-          locality_name: "Seoul"
-          organization_name: "My Company"
-          organizational_unit_name: "IT"
-      notify: Combine cert and key
+    - name: Generate self-signed SSL certificate and private key
+      shell: |
+        openssl req -x509 -nodes -days 365 \
+          -newkey rsa:2048 \
+          -keyout {{ key_path }} \
+          -out {{ cert_path }} \
+          -subj "/C=KR/ST=Seoul/L=Seoul/O=MyCompany/OU=IT/CN={{ domain }}"
+      args:
+        creates: "{{ cert_path }}"
 
     - name: Combine certificate and key into HAProxy-compatible PEM file
       shell: |
@@ -49,14 +46,3 @@
         name: haproxy
         state: restarted
         enabled: true
-
-  handlers:
-    - name: Combine cert and key
-      shell: |
-        cat {{ cert_path }} {{ key_path }} > {{ combined_pem_path }}
-      notify: Restart haproxy
-
-    - name: Restart haproxy
-      ansible.builtin.systemd:
-        name: haproxy
-        state: restarted
