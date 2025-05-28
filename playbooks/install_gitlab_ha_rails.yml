@@ -89,14 +89,18 @@
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
 
-    - debug:
+    - name: Show reconfigure output
+      debug:
         var: reconfigure_output.stdout_lines
 
-    - debug:
+    - name: Show reconfigure2 output
+      debug:
         var: reconfigure_2_output.stdout_lines
 
-    - debug:
+    - name: Show status output
+      debug:
         var: status_output.stdout_lines 
+
 
 # Rails 확인
 # hostname, patroni_leader_ip 변수 입력 필요

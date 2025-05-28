@@ -99,16 +99,36 @@
       command: gitlab-ctl reconfigure
       when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq'))
 
+    ### psql ha 후처리############################## 
+    - name: Run patroni members command on 1st psql node
+      ansible.builtin.command: "/opt/gitlab/bin/gitlab-ctl patroni members"
+      register: patroni_output
+      when: inventory_hostname == (groups['psql'] | sort | first)
+
+    - name: Extract leader IP from patroni output
+      set_fact:
+        patroni_leader_ip: "{{ patroni_output.stdout_lines | select('search', 'Leader') | list | first | regex_search('([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') }}"
+      when: patroni_output is defined
+      delegate_to: localhost
+      run_once: true
+
+
     #########################################################
     - name: Check GitLab status
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
 
-    - debug:
+    - name: Show reconfigure output
+      debug:
         var: reconfigure_output.stdout_lines
 
-    - debug:
+    - name: Show status output
+      debug:
         var: status_output.stdout_lines 
+
+    - name: Show Patroni Leader IP
+      debug:
+        msg: "Patroni Leader IP is {{ patroni_leader_ip }}"
 
 # Consul 확인
 # sudo /opt/gitlab/embedded/bin/consul members
