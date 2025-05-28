@@ -4,7 +4,55 @@
   become: true
   become_user: root
 
-  tasks: 
+- name: Setup Let's Encrypt certificate with HAProxy and auto-renewal
+  hosts: haproxy
+  become: true
+  vars:
+    domain: mygitlab.idtice.com
+    certbot_email: daeung@plateer.com
+    cert_path: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+    key_path: /etc/letsencrypt/live/{{ domain }}/privkey.pem
+    combined_pem_path: /etc/ssl/certs/haproxy_cert.pem
+    renew_script: /usr/local/bin/renew_cert_and_reload_haproxy.sh
+
+  tasks:
+
+    - name: Ensure Certbot is installed
+      apt:
+        name: certbot
+        state: present
+        update_cache: true 
+
+    - name: Obtain SSL certificate using Certbot
+      command: >
+        certbot certonly --standalone
+        --non-interactive --agree-tos
+        -d {{ domain }}
+        -m {{ certbot_email }}
+      register: certbot_result
+      changed_when: "'Congratulations' in certbot_result.stdout"
+
+    - name: Combine certificate and key into HAProxy-compatible PEM file
+      shell: |
+        cat {{ cert_path }} {{ key_path }} > {{ combined_pem_path }}
+      args:
+        creates: "{{ combined_pem_path }}"
+
+    - name: Create renewal and reload script
+      copy:
+        dest: "{{ renew_script }}"
+        content: |
+          #!/bin/bash
+          certbot renew --quiet --deploy-hook "cat {{ cert_path }} {{ key_path }} > {{ combined_pem_path }} && systemctl reload haproxy"
+        mode: '0755'
+
+    - name: Add cron job for certificate renewal
+      cron:
+        name: "Auto-renew Let's Encrypt certificate and reload HAProxy"
+        job: "{{ renew_script }}"
+        minute: "0"
+        hour: "3"
+
     - name: Install HAProxy on Debian-based systems
       ansible.builtin.apt:
         name: haproxy
