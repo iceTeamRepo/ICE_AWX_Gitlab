@@ -18,10 +18,11 @@
   tasks:
 
     - name: Ensure Certbot is installed
-      apt:
+      ansible.builtin.apt:
         name: certbot
         state: present
-        update_cache: true 
+        update_cache: yes
+      become: true  # <== 이 줄 추가
 
     - name: Obtain SSL certificate using Certbot
       command: >

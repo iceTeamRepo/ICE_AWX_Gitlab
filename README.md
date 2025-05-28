@@ -11,6 +11,12 @@
 
 - minio 에서 accesskey, secretkey 얻기
 
+- 도메인 서버에 도메인 등록하기 (mygitlab.idtice.com)
+
+### Gitlab Ansible 프로젝트
+
+[ICE_AWX_Gitlab](https://github.com/iceTeamRepo/ICE_AWX_Gitlab.git)
+
 ## 배포
 
 1. `haproxy`
