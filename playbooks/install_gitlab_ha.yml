@@ -62,11 +62,6 @@
       when: template.changed
       register: reconfigure_output
 
-    - name: Configure GitLab
-      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl restart"
-      when: template.changed
-      register: restart_output
-
     ### PgBouncer 관련 후처리##############################
     - name: Create .pgpass and reload consul if hostname is pgbouncer
       ansible.builtin.shell: |
@@ -111,8 +106,7 @@
 
     - debug:
         var: reconfigure_output.stdout_lines
-    - debug:
-        var: restart_output.stdout_lines
+
     - debug:
         var: status_output.stdout_lines 
 

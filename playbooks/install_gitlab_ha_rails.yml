@@ -77,11 +77,6 @@
       when: template2.changed
       register: reconfigure_2_output
 
-    - name: Configure GitLab
-      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl restart"
-      when: template.changed
-      register: restart_output
-
     - name: Skip auto reconfigure
       file:
         path: /etc/gitlab/skip-auto-reconfigure
@@ -99,9 +94,6 @@
 
     - debug:
         var: reconfigure_2_output.stdout_lines
-
-    - debug:
-        var: restart_output.stdout_lines
 
     - debug:
         var: status_output.stdout_lines 
