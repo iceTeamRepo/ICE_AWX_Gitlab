@@ -419,9 +419,9 @@ gitlab_rails['object_store']['enabled'] = true
 gitlab_rails['object_store']['connection'] = {
   'provider' => 'AWS',
   'region' => 'minio',
-  'aws_access_key_id' => '{{ aws_access_key_id }}'
-  'aws_secret_access_key' => '{{ aws_secret_access_key }}'
-  'endpoint' => 'https://minio.idtice.com:9000'
+  'aws_access_key_id' => '{{ aws_access_key_id }}',
+  'aws_secret_access_key' => '{{ aws_secret_access_key }}',
+  'endpoint' => 'https://minio.idtice.com:9000',
   'pat_style' => true
 }
 
@@ -439,9 +439,9 @@ gitlab_rails['object_store']['objects']['pages']['bucket'] = 'gitlab-bucket'
 gitlab_rails['backup_upload_connection'] = {
   'provider' => 'AWS',
   'region' => 'minio',
-  'aws_access_key_id' => '{{ aws_access_key_id }}'
-  'aws_secret_access_key' => '{{ aws_secret_access_key }}'
-  'endpoint' => 'https://minio.idtice.com:9000'
+  'aws_access_key_id' => '{{ aws_access_key_id }}',
+  'aws_secret_access_key' => '{{ aws_secret_access_key }}',
+  'endpoint' => 'https://minio.idtice.com:9000',
   'pat_style' => true
 }
 
@@ -450,9 +450,9 @@ gitlab_rails['backup_upload_remote_directory'] = 'gitlab-backup'
 gitlab_rails['ci_secure_files_object_store_connection'] = {
   'provider' => 'AWS',
   'region' => 'minio',
-  'aws_access_key_id' => '{{ aws_access_key_id }}'
-  'aws_secret_access_key' => '{{ aws_secret_access_key }}'
-  'endpoint' => 'https://minio.idtice.com:9000'
+  'aws_access_key_id' => '{{ aws_access_key_id }}',
+  'aws_secret_access_key' => '{{ aws_secret_access_key }}',
+  'endpoint' => 'https://minio.idtice.com:9000',
   'pat_style' => true
 }
 gitlab_rails['ci_secure_files_object_store_enabled'] = true
