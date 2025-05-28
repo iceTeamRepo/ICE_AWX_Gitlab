@@ -102,8 +102,10 @@
     ### psql ha 후처리############################## 
     - name: Run patroni members command on 1st psql node
       ansible.builtin.command: "/opt/gitlab/bin/gitlab-ctl patroni members"
+
+      delegate_to: "{{ groups['psql'] | sort | first }}"
+      run_once: true
       register: patroni_output
-      when: inventory_hostname == (groups['psql'] | sort | first)
 
     - name: Extract leader IP from patroni output
       set_fact:
@@ -111,7 +113,6 @@
       when: patroni_output is defined
       delegate_to: localhost
       run_once: true
-
 
     #########################################################
     - name: Check GitLab status
