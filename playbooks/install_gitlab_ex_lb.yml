@@ -1,61 +1,40 @@
----
+--- 
 - name: Install Gitlab External HA LB
   hosts: "{{ hostname }}"
   become: true
   become_user: root 
   vars:
     domain: mygitlab.idtice.com
-    certbot_email: daeung@plateer.com
-    cert_path: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
-    key_path: /etc/letsencrypt/live/{{ domain }}/privkey.pem
+    cert_path: /etc/ssl/certs/selfsigned.crt
+    key_path: /etc/ssl/private/selfsigned.key
     combined_pem_path: /etc/ssl/certs/haproxy_cert.pem
-    renew_script: /usr/local/bin/renew_cert_and_reload_haproxy.sh
 
   tasks:
-    - name: Ensure Certbot is installed
+    - name: Install required packages
       ansible.builtin.apt:
-        name: certbot
-        state: present
-        update_cache: yes
-      become: true 
+        name: [openssl, haproxy]
+        state: latest
+        update_cache: true
       when: ansible_os_family == "Debian"
 
-    - name: Obtain SSL certificate using Certbot
-      command: >
-        certbot certonly --standalone
-        --non-interactive --agree-tos
-        -d {{ domain }}
-        -m {{ certbot_email }}
-      register: certbot_result
-      changed_when: "'Congratulations' in certbot_result.stdout"
+    - name: Generate a self-signed certificate
+      openssl_certificate:
+        path: "{{ cert_path }}"
+        privatekey_path: "{{ key_path }}"
+        common_name: "{{ domain }}"
+        provider: selfsigned
+        days: 365
+        subject:
+          locality_name: "Seoul"
+          organization_name: "My Company"
+          organizational_unit_name: "IT"
+      notify: Combine cert and key
 
     - name: Combine certificate and key into HAProxy-compatible PEM file
       shell: |
         cat {{ cert_path }} {{ key_path }} > {{ combined_pem_path }}
       args:
         creates: "{{ combined_pem_path }}"
-
-    - name: Create renewal and reload script
-      copy:
-        dest: "{{ renew_script }}"
-        content: |
-          #!/bin/bash
-          certbot renew --quiet --deploy-hook "cat {{ cert_path }} {{ key_path }} > {{ combined_pem_path }} && systemctl reload haproxy"
-        mode: '0755'
-
-    - name: Add cron job for certificate renewal
-      cron:
-        name: "Auto-renew Let's Encrypt certificate and reload HAProxy"
-        job: "{{ renew_script }}"
-        minute: "0"
-        hour: "3"
-
-    - name: Install HAProxy on Debian-based systems
-      ansible.builtin.apt:
-        name: haproxy
-        state: latest
-        update_cache: true
-      when: ansible_os_family == "Debian"
 
     - name: Copy internal HAProxy configuration
       copy:
@@ -64,20 +43,20 @@
         owner: root
         group: root
         mode: '0644'
-      delegate_to: haproxy
-      run_once: true
- 
-    - name: Restart HAProxy service
-      ansible.builtin.systemd:
-        name: haproxy
-        state: restarted
-      delegate_to: haproxy
-      run_once: true
 
     - name: Start and enable HAProxy service
       ansible.builtin.systemd:
         name: haproxy
-        state: started
+        state: restarted
         enabled: true
-      delegate_to: haproxy
-      run_once: true
+
+  handlers:
+    - name: Combine cert and key
+      shell: |
+        cat {{ cert_path }} {{ key_path }} > {{ combined_pem_path }}
+      notify: Restart haproxy
+
+    - name: Restart haproxy
+      ansible.builtin.systemd:
+        name: haproxy
+        state: restarted
