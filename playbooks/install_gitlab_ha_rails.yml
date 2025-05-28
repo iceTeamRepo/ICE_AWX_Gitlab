@@ -60,8 +60,8 @@
 
     - name: Revert db connection to PgBouncer
       set_fact:
-        db_host: ""
-        db_port: ""
+        db_host: "{{ hostvars['haproxy'].ansible_host }}"
+        db_port: 6432
 
     - name: Update gitlab.rb configuration
       template:

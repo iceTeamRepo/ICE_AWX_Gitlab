@@ -869,12 +869,17 @@ gitlab_rails['auto_migrate'] = false
 # gitlab_rails['db_application_name'] = nil
 # gitlab_rails['db_database_tasks'] = true
 
-{% if inventory_hostname | regex_search('sidekiq|rails') %}
+{% if 'sidekiq' in inventory_hostname %}
+gitlab_rails['db_host'] = "{{ hostvars['haproxy'].ansible_host }}"
+gitlab_rails['db_port'] = 6432
+gitlab_rails['db_password'] = 'psqlpassword'
+{% endif %}
+
+{% if 'rails' in inventory_hostname %}
 gitlab_rails['db_host'] = '{{ db_host | default(hostvars["haproxy"].ansible_host) }}'
 gitlab_rails['db_port'] = {{ db_port | default(6432) }}
 gitlab_rails['db_password'] = 'psqlpassword'
 {% endif %}
-
 
 ##! Command to generate extra database configuration
 # gitlab_rails['db_extra_config_command'] = nil
