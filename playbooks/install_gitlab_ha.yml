@@ -130,6 +130,7 @@
     - name: Show Patroni Leader IP
       debug:
         msg: "Patroni Leader IP is {{ patroni_leader_ip }}"
+      when: inventory_hostname == psql_leader
 
 # Consul 확인
 # sudo /opt/gitlab/embedded/bin/consul members
