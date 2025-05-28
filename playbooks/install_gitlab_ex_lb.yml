@@ -2,11 +2,7 @@
 - name: Install Gitlab External HA LB
   hosts: "{{ hostname }}"
   become: true
-  become_user: root
-
-- name: Setup Let's Encrypt certificate with HAProxy and auto-renewal
-  hosts: haproxy
-  become: true
+  become_user: root 
   vars:
     domain: mygitlab.idtice.com
     certbot_email: daeung@plateer.com
@@ -16,13 +12,13 @@
     renew_script: /usr/local/bin/renew_cert_and_reload_haproxy.sh
 
   tasks:
-
     - name: Ensure Certbot is installed
       ansible.builtin.apt:
         name: certbot
         state: present
         update_cache: yes
-      become: true  # <== 이 줄 추가
+      become: true 
+      when: ansible_os_family == "Debian"
 
     - name: Obtain SSL certificate using Certbot
       command: >
