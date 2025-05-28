@@ -30,7 +30,7 @@ all:
     prometheus:
       ansible_host: 10.0.10.19
     exproxy:
-      ansible_host: 10.0.1.10
+      ansible_host: 43.201.34.241
   children:
     praefect:
       hosts:
