@@ -108,12 +108,6 @@
       register: patroni_output
       when: inventory_hostname == psql_leader
 
-    - name: Extract leader IP from patroni output
-      set_fact:
-        patroni_leader_ip: "{{ patroni_output.stdout_lines | select('search', 'Leader') | list | first | regex_search('([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') }}"
-      run_once: true
-      when: patroni_output is defined
-
     #########################################################
     - name: Check GitLab status
       command: "/opt/gitlab/bin/gitlab-ctl status"
@@ -129,7 +123,7 @@
 
     - name: Show Patroni Leader IP
       debug:
-        msg: "Patroni Leader IP is {{ patroni_leader_ip }}"
+        msg: patroni_output.stdout_lines
       when: inventory_hostname == psql_leader
 
 # Consul 확인
