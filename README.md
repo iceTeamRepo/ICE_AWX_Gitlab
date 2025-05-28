@@ -4,7 +4,7 @@
 
 ## Prerequsite
 
-- minio 에서 아래 버킷 만들기
+- minio 에서 아래 버킷 만들기 (만들때 versioning : `ON`)
   - gitlab-bucket
   - gitlab-ci-secure
   - gitlab-backup
