@@ -870,8 +870,8 @@ gitlab_rails['auto_migrate'] = false
 # gitlab_rails['db_database_tasks'] = true
 
 {% if inventory_hostname | regex_search('sidekiq|rails') %}
-gitlab_rails['db_host'] = '{{ hostvars["haproxy"].ansible_host }}'
-gitlab_rails['db_port'] = 6432
+gitlab_rails['db_host'] = '{{ db_host | default(hostvars["haproxy"].ansible_host) }}'
+gitlab_rails['db_port'] = {{ db_port | default(6432) }}
 gitlab_rails['db_password'] = 'psqlpassword'
 {% endif %}
 

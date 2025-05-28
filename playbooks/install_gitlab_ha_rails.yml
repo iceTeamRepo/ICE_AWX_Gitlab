@@ -1,0 +1,110 @@
+---
+- name: Install GitLab HA
+  hosts: '{{ hostname }}'
+  become: true
+  become_user: root
+  serial: 1 
+  vars:
+    aws_access_key_id: "0eGWXa9lTakAfMPdEHwW"
+    aws_secret_access_key: "0hPhcw89XuX7cfjc36ELoARNpHaW30NxMUGMrt4T"
+  tasks:
+    - name: Install Pre requsites packages for GitLab
+      ansible.builtin.apt:
+        name: '{{ item }}'
+        state: latest
+      with_items:
+        - curl 
+        - openssh-server
+        - ca-certificates
+        - tzdata
+        - perl
+        - unzip
+        - software-properties-common
+      when: ansible_os_family == "Debian" 
+
+    - name: Add GitLab package repository
+      ansible.builtin.shell: "curl -s https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.deb.sh | sudo bash"
+      args:
+        creates: /etc/apt/sources.list.d/gitlab_gitlab-ee.list
+  
+    - name: Temporarily disable swap
+      ansible.builtin.command: swapoff -a
+      become: true
+    
+    - name: Install GitLab
+      ansible.builtin.apt:
+        name: "gitlab-ee=17.10.1-ee.0"
+        state: present
+
+    - name: Set DB host/port to Patroni leader
+      set_fact:
+        db_host: "{{ patroni_leader_ip }}"
+        db_port: 5432
+
+    - name: Update /etc/gitlab/gitlab.rb
+      ansible.builtin.template:
+        src: templates/gitlab.rb.j2
+        dest: /etc/gitlab/gitlab.rb
+        owner: root
+        group: root
+        mode: '0600'
+      register: template
+
+    - name: Configure GitLab
+      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
+      when: template.changed
+      register: reconfigure_output
+
+    - name: DB migration
+      ansible.builtin.shell: gitlab-rake gitlab:db:configure
+
+    - name: Revert db connection to PgBouncer
+      set_fact:
+        db_host: ""
+        db_port: ""
+
+    - name: Update gitlab.rb configuration
+      template:
+        src: templates/gitlab.rb.j2
+        dest: /etc/gitlab/gitlab.rb
+        owner: root
+        group: root
+        mode: '0600'
+      register: template2
+
+    - name: Configure GitLab Again
+      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
+      when: template2.changed
+      register: reconfigure_2_output
+
+    - name: Configure GitLab
+      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl restart"
+      when: template.changed
+      register: restart_output
+
+    - name: Skip auto reconfigure
+      file:
+        path: /etc/gitlab/skip-auto-reconfigure
+        state: touch
+
+    - name: Re-run gitlab-ctl reconfigure on leader
+      command: gitlab-ctl reconfigure 
+
+    - name: Check GitLab status
+      command: "/opt/gitlab/bin/gitlab-ctl status"
+      register: status_output
+
+    - debug:
+        var: reconfigure_output.stdout_lines
+
+    - debug:
+        var: reconfigure_2_output.stdout_lines
+
+    - debug:
+        var: restart_output.stdout_lines
+
+    - debug:
+        var: status_output.stdout_lines 
+
+# Rails 확인
+# hostname, patroni_leader_ip 변수 입력 필요
