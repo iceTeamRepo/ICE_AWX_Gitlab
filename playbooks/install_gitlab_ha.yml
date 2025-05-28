@@ -124,21 +124,3 @@
       debug:
         msg: patroni_output.stdout_lines
       when: inventory_hostname == psql_leader
-
-# Consul 확인
-# sudo /opt/gitlab/embedded/bin/consul members
-
-# PSQL 확인
-# sudo gitlab-ctl patroni members
-
-# PGBouncer 후처리
-# gitlab-ctl write-pgpass --host 127.0.0.1 --database pgbouncer --user pgbouncer --hostuser gitlab-consul
-# gitlab-ctl pgb-console #  pgbouncerpassword
-# show databases ; show clients ;
-
-# praefect 확인 
-# sudo GRPC_TRACE=all GRPC_VERBOSITY=DEBUG gitlab-rake gitlab:praefect:check
-# sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
-
-# gitaly 확인
-# sudo gitlab-rake gitlab:gitaly:check 2>&1 | sudo tee /etc/gitlab/gitaly_check

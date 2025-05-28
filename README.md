@@ -95,3 +95,25 @@
       - install_gitlab_ex_lb.yml
     - variables
       - hostname: exproxy
+
+## 확인
+
+ 
+  ```bash
+    # Consul
+    $ sudo /opt/gitlab/embedded/bin/consul members
+
+    # PSQL 확인
+    $ sudo gitlab-ctl patroni members
+
+  
+    # praefect 확인 
+    $ sudo GRPC_TRACE=all GRPC_VERBOSITY=DEBUG gitlab-rake gitlab:praefect:check
+    $ sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
+
+    # gitaly 확인
+    $ sudo gitlab-rake gitlab:gitaly:check 2>&1 | sudo tee /etc/gitlab/gitaly_check
+    
+    # rails 확인
+    $ sudo gitlab-rake gitlab:check
+  ```

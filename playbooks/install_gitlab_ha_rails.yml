@@ -97,8 +97,4 @@
 
     - name: Show status output
       debug:
-        var: status_output.stdout_lines 
-
-
-# Rails 확인
-# hostname, patroni_leader_ip 변수 입력 필요
+        var: status_output.stdout_lines
