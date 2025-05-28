@@ -7,7 +7,8 @@
   vars:
     praefect_nodes: "{{ groups['praefect'] }}"
     praefect_leader: "{{ praefect_nodes | sort | first }}"
-
+    aws_access_key_id: "0eGWXa9lTakAfMPdEHwW"
+    aws_secret_access_key: "0hPhcw89XuX7cfjc36ELoARNpHaW30NxMUGMrt4T"
   tasks:
     - name: Install Pre requsites packages for GitLab
       ansible.builtin.apt:
@@ -91,19 +92,18 @@
         EOF
       when: inventory_hostname.startswith('praefect_db')
 
-    ### Praefect Node 관련 후처리############################## 
+    ### Praefect & Sidekiq Node 관련 후처리############################## 
     - name: Skip auto reconfigure
       file:
         path: /etc/gitlab/skip-auto-reconfigure
         state: touch
-      when: inventory_hostname in praefect_nodes
+      when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq'))
 
     - name: Re-run gitlab-ctl reconfigure on leader
       command: gitlab-ctl reconfigure
-      when: inventory_hostname == praefect_leader
+      when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq'))
 
     #########################################################
-
     - name: Check GitLab status
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
