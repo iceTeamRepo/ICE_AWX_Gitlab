@@ -5,8 +5,8 @@
   become_user: root
   serial: 1 
   vars:
-    aws_access_key_id: "0eGWXa9lTakAfMPdEHwW"
-    aws_secret_access_key: "0hPhcw89XuX7cfjc36ELoARNpHaW30NxMUGMrt4T"
+    aws_access_key_id: "{{ minio_access_key | default('accesskey') }}"
+    aws_secret_access_key: "{{ minio_secret_key | default('secretkey') }}"
   tasks:
     - name: Install Pre requsites packages for GitLab
       ansible.builtin.apt:
@@ -38,7 +38,7 @@
 
     - name: Set DB host/port to Patroni leader
       set_fact:
-        db_host: "{{ patroni_leader_ip }}"
+        db_host: "{{ patroni_leader_ip | default('10.0.10.13') }}"
         db_port: 5432
 
     - name: Update /etc/gitlab/gitlab.rb

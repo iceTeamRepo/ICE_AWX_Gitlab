@@ -9,8 +9,8 @@
     praefect_leader: "{{ praefect_nodes | sort | first }}"
     psql_nodes: "{{ groups['psql'] }}"
     psql_leader : "{{ psql_nodes | sort | first }}"
-    aws_access_key_id: "0eGWXa9lTakAfMPdEHwW"
-    aws_secret_access_key: "0hPhcw89XuX7cfjc36ELoARNpHaW30NxMUGMrt4T"
+    aws_access_key_id: "{{ minio_access_key | default('accesskey') }}"
+    aws_secret_access_key: "{{ minio_secret_key | default('secretkey') }}"
   tasks:
     - name: Install Pre requsites packages for GitLab
       ansible.builtin.apt:

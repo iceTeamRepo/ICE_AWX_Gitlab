@@ -1,0 +1,38 @@
+---
+- name: Install Gitlab External HA LB
+  hosts: "{{ hostname }}"
+  become: true
+  become_user: root
+
+  tasks: 
+    - name: Install HAProxy on Debian-based systems
+      ansible.builtin.apt:
+        name: haproxy
+        state: latest
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Copy internal HAProxy configuration
+      copy:
+        src: templates/external-haproxy.cfg
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+      delegate_to: haproxy
+      run_once: true
+ 
+    - name: Restart HAProxy service
+      ansible.builtin.systemd:
+        name: haproxy
+        state: restarted
+      delegate_to: haproxy
+      run_once: true
+
+    - name: Start and enable HAProxy service
+      ansible.builtin.systemd:
+        name: haproxy
+        state: started
+        enabled: true
+      delegate_to: haproxy
+      run_once: true
