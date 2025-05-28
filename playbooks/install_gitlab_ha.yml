@@ -92,16 +92,16 @@
         EOF
       when: inventory_hostname.startswith('praefect_db')
 
-    ### Praefect & Sidekiq Node 관련 후처리############################## 
+    ### Praefect & Sidekiq & Rails Node 관련 후처리############################## 
     - name: Skip auto reconfigure
       file:
         path: /etc/gitlab/skip-auto-reconfigure
         state: touch
-      when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq'))
+      when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq')  or (inventory_hostname.startswith('rails'))
 
     - name: Re-run gitlab-ctl reconfigure on leader
       command: gitlab-ctl reconfigure
-      when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq'))
+      when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq')  or (inventory_hostname.startswith('rails'))
 
     #########################################################
     - name: Check GitLab status
