@@ -61,7 +61,6 @@
 
     - name: Configure GitLab
       ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
-      when: template.changed
       register: reconfigure_output
 
     ### PgBouncer 관련 후처리##############################
