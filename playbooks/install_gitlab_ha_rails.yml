@@ -52,7 +52,6 @@
 
     - name: Configure GitLab
       ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
-      when: template.changed
       register: reconfigure_output
 
     - name: DB migration
@@ -74,7 +73,6 @@
 
     - name: Configure GitLab Again
       ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
-      when: template2.changed
       register: reconfigure_2_output
 
     - name: Skip auto reconfigure
