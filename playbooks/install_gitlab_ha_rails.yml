@@ -74,6 +74,13 @@
         mode: '0600'
       register: template2
 
+    - name: Clean gitlab.rb and replace original
+      ansible.builtin.shell: |
+        grep -vE '^\s*#|^\s*$' /etc/gitlab/gitlab.rb > /tmp/gitlab.rb.cleaned
+        mv /tmp/gitlab.rb.cleaned /etc/gitlab/gitlab.rb
+        chown root:root /etc/gitlab/gitlab.rb
+        chmod 0600 /etc/gitlab/gitlab.rb
+
     - name: Configure GitLab Again
       ansible.builtin.shell: gitlab-ctl reconfigure
       register: reconfigure2_output
