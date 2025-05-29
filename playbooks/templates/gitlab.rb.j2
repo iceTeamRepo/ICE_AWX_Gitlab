@@ -31,7 +31,7 @@
 ##! https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
 
 {% if inventory_hostname | regex_search('rails') %}
-external_url '{{ gitlab_external_url | default("http://mygitlab.idtice.com") }}'
+external_url '{{ gitlab_external_url | default("https://mygitlab.idtice.com") }}'
 {% endif %}
 
 
