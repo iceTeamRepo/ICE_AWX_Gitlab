@@ -35,16 +35,12 @@
       args:
         creates: /etc/apt/sources.list.d/gitlab_gitlab-ee.list
 
-    - name: Temporarily disable swap
-      command: swapoff -a
-
     - name: Install GitLab
       apt:
         name: gitlab-ee=17.10.1-ee.0
         state: present
 
-    # DB 마이그레이션용 gitlab.rb 생성
-    - name: Configure gitlab.rb for DB migration
+    - name: Configure gitlab.rb
       template:
         src: templates/gitlab.rb.j2
         dest: /etc/gitlab/gitlab.rb
@@ -70,9 +66,9 @@
     - name: DB migration
       shell: gitlab-rake gitlab:db:configure
       when: inventory_hostname == (groups['rails'] | sort) | first
+      register: db_migration_result
 
-    # PgBouncer로 DB 설정 전환
-    - name: Set DB host to PgBouncer after migration
+    - name: Set DB host to haproxy after migration
       set_fact:
         db_host: "{{ hostvars['haproxy'].ansible_host }}"
         db_port: 6432
@@ -136,7 +132,7 @@
       file:
         path: /etc/gitlab/skip-auto-reconfigure
         state: touch
-      when: inventory_hostname == praefect_leader or inventory_hostname.startswith('sidekiq')
+      when: inventory_hostname == praefect_leader or inventory_hostname.startswith('rails')
 
     # 점검
     - name: GitLab status check
@@ -181,3 +177,4 @@
           - "patroni: {{ patroni_members_output.stdout_lines | default('') }}"
           - "praefect: {{ praefect_combined_output.stdout_lines | default('') }}"
           - "gitaly: {{ gitaly_check_output.stdout_lines | default('') }}"
+          - "db_migration: {{ db_migration_result.stdout_lines | default('') }}"

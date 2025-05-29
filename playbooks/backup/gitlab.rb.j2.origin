@@ -30,7 +30,7 @@
 ##! address from AWS. For more details, see:
 ##! https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
 
-{% if inventory_hostname | regex_search('rails') %}
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 external_url '{{ gitlab_external_url | default("http://mygitlab.idtice.com") }}'
 {% endif %}
 
@@ -69,8 +69,10 @@ roles(['redis_sentinel_role', 'redis_master_role', 'consul_role'])
 roles(['redis_sentinel_role', 'redis_replica_role', 'consul_role'])
 {% elif 'praefect_db' in inventory_hostname %} 
 roles(['postgres_role', 'consul_role'])
+{% elif 'sidekiq' in inventory_hostname %} 
+roles(['sidekiq_role'])
 {% elif 'rails' in inventory_hostname %} 
-roles(['application_role', 'sidekiq_role'])
+roles(['application_role'])
 {% endif %}
 
 
@@ -299,7 +301,7 @@ gitlab_rails['internal_api_url'] = 'http://{{ hostvars["haproxy"].ansible_host }
 ### Monitoring settings
 ###! IP whitelist controlling access to monitoring endpoints
 # gitlab_rails['monitoring_whitelist'] = ['127.0.0.0/8', '::1/128']
-{% if inventory_hostname | regex_search('rails') %}
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 gitlab_rails['monitoring_whitelist'] =  ['0.0.0.0/0', '::1/128']
 {% endif %}
 
@@ -412,7 +414,7 @@ gitlab_rails['monitoring_whitelist'] =  ['0.0.0.0/0', '::1/128']
 # gitlab_rails['object_store']['objects']['pages']['bucket'] = nil
 
 
-{% if inventory_hostname | regex_search('rails') %}
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 gitlab_rails['object_store']['enabled'] = true
 gitlab_rails['object_store']['connection'] = {
   'provider' => 'AWS',
@@ -831,7 +833,7 @@ gitlab_rails['ci_secure_files_object_store_remote_directory'] = 'gitlab-ci-secur
 #### Enable or disable automatic database migrations
 # gitlab_rails['auto_migrate'] = true
 
-{% if inventory_hostname | regex_search('consul|psql|redis|praefect_db|praefect|gitaly|rails') %}
+{% if inventory_hostname | regex_search('consul|psql|redis|praefect_db|praefect|gitaly|sidekiq|rails') %}
 gitlab_rails['auto_migrate'] = false
 {% endif %}
 
@@ -866,6 +868,12 @@ gitlab_rails['auto_migrate'] = false
 # gitlab_rails['db_tcp_user_timeout'] = nil
 # gitlab_rails['db_application_name'] = nil
 # gitlab_rails['db_database_tasks'] = true
+
+{% if 'sidekiq' in inventory_hostname %}
+gitlab_rails['db_host'] = "{{ hostvars['haproxy'].ansible_host }}"
+gitlab_rails['db_port'] = 6432
+gitlab_rails['db_password'] = 'psqlpassword'
+{% endif %}
 
 {% if 'rails' in inventory_hostname %}
 gitlab_rails['db_host'] = '{{ db_host | default(hostvars["haproxy"].ansible_host) }}'
@@ -941,7 +949,7 @@ gitlab_rails['db_password'] = 'psqlpassword'
 #   {'host' => '127.0.0.1', 'port' => 26379},
 # ]
 
-{% if inventory_hostname | regex_search('rails') %}
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 gitlab_rails['redis_sentinels'] = [
    {'host' => '{{ hostvars["redis1"].ansible_host }}', 'port' => 26379}, 
 ]
@@ -1072,7 +1080,7 @@ gitlab_rails['redis_sentinels'] = [
 
 # gitlab_rails['redis_yml_override'] = nil
 
-{% if inventory_hostname | regex_search('rails') %}
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 gitlab_rails['repositories_storages'] = {
   "default" => {
     "gitaly_address" => "tcp://{{ hostvars["haproxy"].ansible_host }}:2305", # internal load balancer IP
@@ -1378,7 +1386,7 @@ puma['enable'] = false
 ### Advanced settings
 # puma['listen'] = '127.0.0.1'
 
-{% if inventory_hostname | regex_search('rails') %}
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 puma['listen'] = '0.0.0.0'
 {% endif %}
 
@@ -1437,12 +1445,8 @@ puma['listen'] = '0.0.0.0'
 ##! https://docs.gitlab.com/ee/administration/sidekiq/extra_sidekiq_processes.html
 
 # sidekiq['enable'] = true
-{% if inventory_hostname in groups['praefect'] or inventory_hostname in groups['gitaly'] %}
+{% if inventory_hostname in groups['praefect'] or inventory_hostname in groups['gitaly'] or 'rails' in inventory_hostname %}
 sidekiq['enable'] = false
-{% endif %}
-
-{% if 'rails' in inventory_hostname %}
-sidekiq['enable'] = true
 {% endif %}
 
 # sidekiq['log_directory'] = "/var/log/gitlab/sidekiq"
@@ -1462,7 +1466,7 @@ sidekiq['enable'] = true
 ##! separating them with a comma within the group entry, a `*` will process all queues
 
 # sidekiq['queue_groups'] = ['*']
-{% if 'rails' in inventory_hostname %} 
+{% if 'sidekiq' in inventory_hostname %} 
 sidekiq['queue_groups'] = ['*'] * 4
 {% endif %}
 
@@ -1474,7 +1478,7 @@ sidekiq['queue_groups'] = ['*'] * 4
 # sidekiq['exporter_tls_key_path'] = ""
 # sidekiq['listen_address'] = "localhost"
 # sidekiq['listen_port'] = 8082
-{% if 'rails' in inventory_hostname %} 
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 sidekiq['listen_address'] = "0.0.0.0"
 {% endif %}
 
@@ -1842,7 +1846,7 @@ redis['password'] = 'redispassword'
 {% if 'redis' in inventory_hostname %} 
 redis['master_name'] = 'gitlab-redis'
 redis['master_ip'] = '{{ hostvars["redis1"].ansible_host }}'
-{% elif 'rails' in inventory_hostname %}
+{% elif inventory_hostname | regex_search('sidekiq|rails') %}
 redis['master_name'] = 'gitlab-redis'
 {% endif %}
 
@@ -1860,7 +1864,7 @@ redis['master_name'] = 'gitlab-redis'
 # redis['master_password'] = 'redis-password-goes-here'
 {% if 'redis' in inventory_hostname %} 
 redis['master_password'] = 'redispassword'
-{% elif 'rails' in inventory_hostname %}
+{% elif inventory_hostname | regex_search('sidekiq|rails') %}
 redis['master_password'] = 'redispassword'
 {% endif %}
 
@@ -2649,7 +2653,7 @@ prometheus['enable'] = false
 ### This value should be the address at which Prometheus is available to a GitLab Rails(Puma, Sidekiq) node.
 ################################################################################
 # gitlab_rails['prometheus_address'] = 'your.prom:9090'
-{% if 'rails' in inventory_hostname %}
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 gitlab_rails['prometheus_address'] = '{{ hostvars["prometheus"].ansible_host }}:9090'
 {% endif %}
 
@@ -2699,7 +2703,7 @@ alertmanager['enable'] = false
 ##! Advanced settings. Should be changed only if absolutely needed.
 # node_exporter['listen_address'] = 'localhost:9100'
 
-{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis|praefect_db|praefect|gitaly|rails') %}
+{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis|praefect_db|praefect|gitaly|sidekiq|rails') %}
 node_exporter['listen_address'] = '0.0.0.0:9100'
 {% endif %}
 
@@ -3411,7 +3415,7 @@ sentinel['quorum'] = 1
 ##! Docs: https://docs.gitlab.com/ee/administration/postgresql/database_load_balancing.html
 ################################################################################
 # gitlab_rails['db_load_balancing'] = { 'hosts' => ['secondary1.example.com'] }
-{% if 'rails' in inventory_hostname %}
+{% if inventory_hostname | regex_search('sidekiq|rails') %}
 gitlab_rails['db_load_balancing'] = {
   'hosts' => [
 {% for host in groups['psql'] | sort %}
@@ -3762,6 +3766,7 @@ patroni['password'] = 'patronipassword'
 # consul['enable'] = false
 {% if inventory_hostname in groups['praefect'] 
    or inventory_hostname in groups['gitaly'] 
+   or inventory_hostname in groups['sidekiq'] 
    or inventory_hostname in groups['rails'] %}
 consul['enable'] = true
 {% endif %}
@@ -3779,7 +3784,7 @@ consul['enable'] = true
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
 # }
 # consul['monitoring_service_discovery'] = false
-{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis|praefect_db|praefect|gitaly|rails') %}
+{% if inventory_hostname | regex_search('consul|psql|pgbouncer|redis|praefect_db|praefect|gitaly|sidekiq|rails') %}
 consul['monitoring_service_discovery'] = true
 {% endif %}
 
@@ -3805,7 +3810,7 @@ consul['configuration'] = {
 }
 {% endif %}
 
-{% if inventory_hostname | regex_search('psql|pgbouncer|redis|praefect_db|praefect|gitaly|rails') %}
+{% if inventory_hostname | regex_search('psql|pgbouncer|redis|praefect_db|praefect|gitaly|sidekiq|rails') %}
 consul['configuration'] = { 
   retry_join: %w(
 {% for host in groups['consul'] | sort %}
