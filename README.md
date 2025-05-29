@@ -118,4 +118,7 @@
     
     # rails 확인
     $ sudo gitlab-rake gitlab:check
+
+    # gitlab.rb 확인
+    $ grep -vE '^\s*#|^\s*$' /etc/gitlab/gitlab.rb
   ```
