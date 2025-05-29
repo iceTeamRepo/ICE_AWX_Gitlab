@@ -21,7 +21,7 @@
 
 1. `haproxy`
    - playbook
-     - install_gitlab_lb.yml
+     - install_lb.yml
    - variables
      - hostname: haproxy
 
@@ -82,8 +82,8 @@
       - install_gitlab.yml
     - variables
       - hostname: rails1
-      - minio_access_key: 2XElZ6V2CnSRifiUjgjc
-      - minio_secret_key: d1eoyP0jJjLWzwRaqCaIANh3edjGlefaLrZG6LLG
+      - minio_access_key: i1k3sTb6f7cP9p99VpDF
+      - minio_secret_key: nfBrCInZOdBawSGmGELWRF9uJDDqXK6RmdntynOu
       - patroni_leader_ip: <patroni leader ip> 
 
 
