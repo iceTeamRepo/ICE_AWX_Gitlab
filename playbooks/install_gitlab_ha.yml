@@ -58,8 +58,12 @@
     ######################################################
 
     - name: Configure GitLab
-      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
+      ansible.builtin.shell: gitlab-ctl reconfigure
       register: reconfigure_output
+      retries: 3
+      delay: 30
+      until: reconfigure_output.rc == 0      
+      ignore_errors: yes
 
     ### PgBouncer 관련 후처리##############################
     - name: Create .pgpass and reload consul if hostname is pgbouncer
@@ -97,11 +101,17 @@
     - name: Re-run gitlab-ctl reconfigure
       ansible.builtin.command: gitlab-ctl reconfigure
       when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq'))
+      register: reconfigure2_output
+      ignore_errors: yes
+      retries: 3
+      delay: 30
+      until: reconfigure2_output.rc == 0
 
     #########################################################
     - name: Check GitLab status
       ansible.builtin.command: /opt/gitlab/bin/gitlab-ctl status
       register: status_output
+      ignore_errors: yes
 
     #########################################################
     # Consul 노드 추가 확인 
@@ -109,12 +119,14 @@
       ansible.builtin.command: /opt/gitlab/embedded/bin/consul members
       when: inventory_hostname == (groups['consul'] | sort) | last
       register: consul_members_output
+      ignore_errors: yes
 
     # Psql 노드 추가 확인 
     - name: Run patroni members on the last psql node
       ansible.builtin.command:  gitlab-ctl patroni members
       when: inventory_hostname == (groups['psql'] | sort) | last
       register: patroni_members_output
+      ignore_errors: yes
 
     # Praefect 노드 추가 확인
     - name: Run praefect check and sql-ping
@@ -123,12 +135,14 @@
         sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
       when: inventory_hostname == (groups['praefect'] | sort) | last
       register: praefect_combined_output
+      ignore_errors: yes
 
     # Gitaly 노드 추가 확인
     - name: Run gitlab gitaly check
       ansible.builtin.shell: gitlab-rake gitlab:gitaly:check
       when: inventory_hostname == (groups['gitaly'] | sort) | last
       register: gitaly_check_output
+      ignore_errors: yes
 
 
     #########################################################
