@@ -302,7 +302,7 @@ gitlab_rails['internal_api_url'] = 'http://{{ hostvars["haproxy"].ansible_host }
 ###! IP whitelist controlling access to monitoring endpoints
 # gitlab_rails['monitoring_whitelist'] = ['127.0.0.0/8', '::1/128']
 {% if inventory_hostname | regex_search('sidekiq|rails') %}
-gitlab_rails['monitoring_whitelist'] = ['{{ hostvars["prometheus"].ansible_host }}/32', '127.0.0.0/8', '::1/128']
+gitlab_rails['monitoring_whitelist'] =  ['0.0.0.0/0', '::1/128']
 {% endif %}
 
 
@@ -1387,7 +1387,7 @@ puma['enable'] = false
 # puma['listen'] = '127.0.0.1'
 
 {% if inventory_hostname | regex_search('sidekiq|rails') %}
-# puma['listen'] = '0.0.0.0'
+puma['listen'] = '0.0.0.0'
 {% endif %}
 
 
@@ -3764,7 +3764,10 @@ patroni['password'] = 'patronipassword'
 # Consul (EE only)
 ################################################################################
 # consul['enable'] = false
-{% if inventory_hostname in groups['praefect'] or inventory_hostname in groups['gitaly'] or 'sidekiq' in inventory_hostname or 'rails' in inventory_hostname %}
+{% if inventory_hostname in groups['praefect'] 
+   or inventory_hostname in groups['gitaly'] 
+   or inventory_hostname in groups['sidekiq'] 
+   or inventory_hostname in groups['rails'] %}
 consul['enable'] = true
 {% endif %}
 # consul['binary_path'] = '/opt/gitlab/embedded/bin/consul'
