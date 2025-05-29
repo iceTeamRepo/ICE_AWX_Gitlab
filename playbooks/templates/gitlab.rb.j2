@@ -3418,9 +3418,9 @@ sentinel['quorum'] = 1
 {% if inventory_hostname | regex_search('sidekiq|rails') %}
 gitlab_rails['db_load_balancing'] = {
   'hosts' => [
-    {% for host in groups['psql'] | sort %}
+{% for host in groups['psql'] | sort %}
     '{{ hostvars[host].ansible_host }}'{% if not loop.last %},{% endif %}
-    {% endfor %}
+{% endfor %}
   ]
 }
 {% endif %}
@@ -3582,7 +3582,7 @@ pgbouncer['users'] = {
 # postgresql['pgbouncer_user'] = nil
 # postgresql['pgbouncer_user_password'] = nil
 {% if 'psql' in inventory_hostname %}
- postgresql['pgbouncer_user_password'] = '2ca64d76cccfe1bc7151bd794169a24c'
+postgresql['pgbouncer_user_password'] = '2ca64d76cccfe1bc7151bd794169a24c'
 {% endif %}
 # pgbouncer['server_reset_query_always'] = 0
 # pgbouncer['server_check_query'] = 'select 1'
@@ -3764,7 +3764,7 @@ patroni['password'] = 'patronipassword'
 # Consul (EE only)
 ################################################################################
 # consul['enable'] = false
-{% if inventory_hostname in groups['praefect'] or inventory_hostname in groups['gitaly'] %}
+{% if inventory_hostname in groups['praefect'] or inventory_hostname in groups['gitaly'] or 'sidekiq' in inventory_hostname or 'rails' in inventory_hostname %}
 consul['enable'] = true
 {% endif %}
 # consul['binary_path'] = '/opt/gitlab/embedded/bin/consul'

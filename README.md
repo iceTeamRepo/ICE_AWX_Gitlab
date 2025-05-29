@@ -106,7 +106,7 @@
     $ sudo /opt/gitlab/embedded/bin/consul members
 
     # PSQL 확인
-    $ sudo gitlab-ctl patroni members
+    # $ sudo gitlab-ctl patroni members
 
   
     # praefect 확인 
