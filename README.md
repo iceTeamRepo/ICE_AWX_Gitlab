@@ -73,7 +73,7 @@
    - playbook
      - install_gitlab_ha.yml
    - variables
-     - hostname: sidekiq
+     - hostname: sidekiq1
      - minio_access_key: <minio access key>
      - minio_secret_key: <minio secret key>
 
@@ -81,7 +81,7 @@
     - playbook
       - install_gitlab_ha_rails.yml
     - variables
-      - hostname: rails
+      - hostname: rails1
       - minio_access_key: <minio access key>
       - minio_secret_key: <minio secret key>
       - patroni_leader_ip: <patroni leader ip>
