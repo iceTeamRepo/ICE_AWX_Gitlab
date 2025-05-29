@@ -15,7 +15,7 @@
 
   tasks:
 
-    # 기본 패키지 설치
+    # 기본 패키지 설치 #########################################################
     - name: Install prerequisite packages
       apt:
         name: '{{ item }}'
@@ -63,6 +63,7 @@
       until: reconfigure_output.rc == 0
       ignore_errors: yes
 
+    # Rails 서버 설정 #########################################################
     - name: DB migration
       shell: gitlab-rake gitlab:db:configure
       when: inventory_hostname == (groups['rails'] | sort) | first
@@ -72,31 +73,35 @@
       set_fact:
         db_host: "{{ hostvars['haproxy'].ansible_host }}"
         db_port: 6432
+      when: inventory_hostname == (groups['rails'] | sort) | first
 
-    - name: Update gitlab.rb for PgBouncer
+    - name: Update gitlab.rb after DB migration 
       template:
         src: templates/gitlab.rb.j2
         dest: /etc/gitlab/gitlab.rb
         owner: root
         group: root
         mode: '0600'
+      when: inventory_hostname == (groups['rails'] | sort) | first
 
-    - name: Clean updated gitlab.rb
+    - name: Clean updated gitlab.rb after DB migration 
       shell: |
         grep -vE '^\s*#|^\s*$' /etc/gitlab/gitlab.rb > /tmp/gitlab.rb.cleaned
         mv /tmp/gitlab.rb.cleaned /etc/gitlab/gitlab.rb
         chown root:root /etc/gitlab/gitlab.rb
         chmod 0600 /etc/gitlab/gitlab.rb
+      when: inventory_hostname == (groups['rails'] | sort) | first
 
-    - name: Reconfigure GitLab for PgBouncer
+    - name: Reconfigure GitLab
       shell: gitlab-ctl reconfigure
       register: reconfigure2_output
       retries: 3
       delay: 30
       until: reconfigure2_output.rc == 0
       ignore_errors: yes
-
-    # 후처리 작업
+      when: inventory_hostname == (groups['rails'] | sort) | first
+      
+    # 기타 모듈 후처리 작업 #########################################################
     - name: Create .pgpass if PgBouncer node
       shell: |
         echo -e "{{ pgbouncer_password | default('pgbouncerpassword') }}\n{{ pgbouncer_password | default('pgbouncerpassword') }}" | sudo gitlab-ctl write-pgpass \
@@ -134,7 +139,7 @@
         state: touch
       when: inventory_hostname == praefect_leader or inventory_hostname.startswith('rails')
 
-    # 점검
+    # 점검 #################################################3
     - name: GitLab status check
       command: /opt/gitlab/bin/gitlab-ctl status
       register: status_output
@@ -166,7 +171,7 @@
       register: gitaly_check_output
       ignore_errors: yes
 
-    # 출력
+    # 출력 ##########################################################
     - name: Show outputs
       debug:
         msg:
