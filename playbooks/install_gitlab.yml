@@ -204,6 +204,7 @@
           (inventory_hostname in groups['gitaly']) or
           (inventory_hostname.startswith('rails') and inventory_hostname != (groups['rails'] | sort | first))
         )
+      delegate_to: localhost
 
     - name: GitLab Reconfigure Praefect and Gitaly
       shell: gitlab-ctl reconfigure
