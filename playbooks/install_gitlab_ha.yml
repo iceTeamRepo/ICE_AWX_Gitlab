@@ -112,6 +112,14 @@
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
 
+    #########################################################
+    # Consul 노드인 경우 consul members 명령어로 노드 확인
+    - name: Run consul members on the last node only
+      command: /opt/gitlab/embedded/bin/consul members
+      when: inventory_hostname == (groups['consul'] | sort) | last
+      register: consul_members_output
+    
+    #########################################################
     - name: Show reconfigure output
       debug:
         var: reconfigure_output.stdout_lines
@@ -124,3 +132,10 @@
       debug:
         msg: patroni_output.stdout_lines
       when: inventory_hostname == psql_leader
+
+
+    - name: Show consul members output
+      debug:
+        var: consul_members_output.stdout_lines
+      when: inventory_hostname == (groups['consul'] | sort) | last
+
