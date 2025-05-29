@@ -7,8 +7,6 @@
   vars:
     praefect_nodes: "{{ groups['praefect'] }}"
     praefect_leader: "{{ praefect_nodes | sort | first }}"
-    psql_nodes: "{{ groups['psql'] }}"
-    psql_leader : "{{ psql_nodes | sort | first }}"
     aws_access_key_id: "{{ minio_access_key | default('accesskey') }}"
     aws_secret_access_key: "{{ minio_secret_key | default('secretkey') }}"
   tasks:
@@ -96,29 +94,43 @@
         state: touch
       when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq'))
 
-    - name: Re-run gitlab-ctl reconfigure on leader
-      command: gitlab-ctl reconfigure
+    - name: Re-run gitlab-ctl reconfigure
+      ansible.builtin.command: gitlab-ctl reconfigure
       when: (inventory_hostname == praefect_leader) or (inventory_hostname.startswith('sidekiq'))
-
-    ### psql ha 후처리############################## 
-    - name: Run patroni members command on 1st psql node
-      ansible.builtin.command: "/opt/gitlab/bin/gitlab-ctl patroni members" 
-      run_once: true
-      register: patroni_output
-      when: inventory_hostname == psql_leader
 
     #########################################################
     - name: Check GitLab status
-      command: "/opt/gitlab/bin/gitlab-ctl status"
+      ansible.builtin.command: /opt/gitlab/bin/gitlab-ctl status
       register: status_output
 
     #########################################################
-    # Consul 노드인 경우 consul members 명령어로 노드 확인
+    # Consul 노드 추가 확인 
     - name: Run consul members on the last node only
-      command: /opt/gitlab/embedded/bin/consul members
+      ansible.builtin.command: /opt/gitlab/embedded/bin/consul members
       when: inventory_hostname == (groups['consul'] | sort) | last
       register: consul_members_output
-    
+
+    # Psql 노드 추가 확인 
+    - name: Run patroni members on the last psql node
+      ansible.builtin.command:  gitlab-ctl patroni members
+      when: inventory_hostname == (groups['psql'] | sort) | last
+      register: patroni_members_output
+
+    # Praefect 노드 추가 확인
+    - name: Run praefect check and sql-ping
+      ansible.builtin.shell: |
+        GRPC_TRACE=all GRPC_VERBOSITY=DEBUG gitlab-rake gitlab:praefect:check
+        sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
+      when: inventory_hostname == (groups['praefect'] | sort) | last
+      register: praefect_combined_output
+
+    # Gitaly 노드 추가 확인
+    - name: Run gitlab gitaly check
+      ansible.builtin.shell: gitlab-rake gitlab:gitaly:check
+      when: inventory_hostname == (groups['gitaly'] | sort) | last
+      register: gitaly_check_output
+
+
     #########################################################
     - name: Show reconfigure output
       debug:
@@ -128,14 +140,22 @@
       debug:
         var: status_output.stdout_lines 
 
-    - name: Show Patroni Leader IP
-      debug:
-        msg: patroni_output.stdout_lines
-      when: inventory_hostname == psql_leader
-
-
     - name: Show consul members output
       debug:
         var: consul_members_output.stdout_lines
       when: inventory_hostname == (groups['consul'] | sort) | last
 
+    - name: Show patroni members output
+      debug:
+        var: patroni_members_output.stdout_lines
+      when: inventory_hostname == (groups['psql'] | sort) | last
+
+    - name: Show combined output
+      ansible.builtin.debug:
+        var: praefect_combined_output.stdout_lines
+      when: inventory_hostname == (groups['praefect'] | sort) | last
+
+    - name: Show gitaly check output
+      ansible.builtin.debug:
+        var: gitaly_check_output.stdout_lines
+      when: inventory_hostname == (groups['gitaly'] | sort) | last

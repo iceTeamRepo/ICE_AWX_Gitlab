@@ -30,12 +30,14 @@
      - install_gitlab_ha.yml
    - variables
      - hostname: consul1, consul2, consul3
+     - batch_size: 3
 
 3. `psql`
    - playbook
      - install_gitlab_ha.yml
    - variables
      - hostname: psql1, psql2
+     - batch_size: 2
 
 4. `pgbouncer`
    - playbook
@@ -49,25 +51,25 @@
    - variables
      - hostname: redis1
 
-6. `praefect_db`
+4. `praefect_db`
    - playbook
      - install_gitlab_ha.yml
    - variables
      - hostname: praefect_db
 
-7. `praefect`
+5. `praefect`
    - playbook
      - install_gitlab_ha.yml
    - variables
      - hostname: praefect1
 
-8. `gitaly`
+6. `gitaly`
    - playbook
      - install_gitlab_ha.yml
    - variables
      - hostname: gitaly1
 
-9. `sidekiq`
+7. `sidekiq`
    - playbook
      - install_gitlab_ha.yml
    - variables
@@ -75,7 +77,7 @@
      - minio_access_key: <minio access key>
      - minio_secret_key: <minio secret key>
 
-10. `rails`
+8.  `rails`
     - playbook
       - install_gitlab_ha_rails.yml
     - variables
@@ -84,13 +86,13 @@
       - minio_secret_key: <minio secret key>
       - patroni_leader_ip: <patroni leader ip>
 
-11. `prometheus`
+9.  `prometheus`
     - playbook
       - install_gitlab_ha.yml
     - variables
       - hostname: prometheus
 
-12. `exproxy`
+10. `exproxy`
     - playbook
       - install_gitlab_ex_lb.yml
     - variables
@@ -112,7 +114,7 @@
     $ sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
 
     # gitaly 확인
-    $ sudo gitlab-rake gitlab:gitaly:check 2>&1 | sudo tee /etc/gitlab/gitaly_check
+    $ sudo gitlab-rake gitlab:gitaly:check 
     
     # rails 확인
     $ sudo gitlab-rake gitlab:check

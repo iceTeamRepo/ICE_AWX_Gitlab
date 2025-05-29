@@ -87,6 +87,11 @@
       command: "/opt/gitlab/bin/gitlab-ctl status"
       register: status_output
 
+    - name: Run gitlab:check
+      ansible.builtin.shell: gitlab-rake gitlab:check
+      when: inventory_hostname == (groups['rails'] | sort) | last
+      register: gitlab_check_output
+    
     - name: Show reconfigure output
       debug:
         var: reconfigure_output.stdout_lines
@@ -98,3 +103,8 @@
     - name: Show status output
       debug:
         var: status_output.stdout_lines
+
+    - name: Show gitlab:check output
+      ansible.builtin.debug:
+        var: gitlab_check_output.stdout_lines 
+      when: inventory_hostname == (groups['rails'] | sort) | last 

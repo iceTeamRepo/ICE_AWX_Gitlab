@@ -23,9 +23,9 @@ all:
       ansible_host: 10.0.10.17
     gitaly1:
       ansible_host: 10.0.10.18
-    sidekiq:
+    sidekiq1:
       ansible_host: 10.0.10.21
-    rails:
+    rails1:
       ansible_host: 10.0.10.10 
     prometheus:
       ansible_host: 10.0.10.19
@@ -47,3 +47,9 @@ all:
         consul1:
         consul2:
         consul3:
+    sidekiq:
+      hosts:
+        sidekiq1:
+    rails:
+      hosts:
+        rails1:
