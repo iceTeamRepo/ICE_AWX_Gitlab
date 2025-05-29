@@ -47,7 +47,7 @@
 
     - name: Copy HAProxy config for internal
       copy:
-        src: templates/internal-haproxy.cfg
+        src: templates/internal-haproxy.cfg.j2
         dest: /etc/haproxy/haproxy.cfg
         owner: root
         group: root

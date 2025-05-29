@@ -37,15 +37,19 @@ frontend internal-rails-tcp-in
 backend pgbouncer
     mode tcp
     option tcp-check
-    server pgbouncer1 10.0.10.14:6432 check
+    server pgbouncer {{ hostvars['pgbouncer'].ansible_host }}:6432 check
 
 backend praefect
     mode tcp
     option tcp-check
     option srvtcpka
-    server praefect1 10.0.10.17:2305 check
+{% for host in groups['praefect'] %}
+    server {{ host }} {{ hostvars[host].ansible_host }}:2305 check
+{% endfor %}
 
 backend internalrails
     mode tcp
     option tcp-check
-    server rails1 10.0.10.100:80 check
+{% for host in groups['rails'] %}
+    server {{ host }} {{ hostvars[host].ansible_host }}:80 check
+{% endfor %}
