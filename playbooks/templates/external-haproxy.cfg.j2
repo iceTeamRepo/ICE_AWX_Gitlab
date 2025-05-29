@@ -25,4 +25,6 @@ backend web_servers
     balance roundrobin
     option forwardfor
     http-request set-header X-Forwarded-Proto https if { ssl_fc } 
-    server web1 10.0.10.10:80 check 
+{% for host in groups['rails'] %}
+    server {{ host }} {{ hostvars[host].ansible_host }}:80 check
+{% endfor %}

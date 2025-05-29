@@ -37,8 +37,8 @@
       when: inventory_hostname == "exproxy"
 
     - name: Copy HAProxy config for external (SSL)
-      copy:
-        src: templates/external-haproxy.cfg
+      template:
+        src: templates/external-haproxy.cfg.j2
         dest: /etc/haproxy/haproxy.cfg
         owner: root
         group: root
