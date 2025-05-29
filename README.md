@@ -89,15 +89,20 @@
 
 ## 실행 순서
 
-- 마지막에 gitlay praefect 하는 이유는 rails 노드에 있는 gitlab secret 과 동일값을 가지도록 구성하기 위함
-
  1. `haproxy`, `exproxy`, `consul`
  2. `psql`, `redis`, `praefect_db`
  3. `pgbouncer`, `praefect`
  4. `gitaly`
  5. `sidekiq`
  6. `rails`
- 7. `gitaly`,`praefect`
+ 
+
+## 실행 후 수행
+ 
+1. rails 노드의 /etc/gitlab/gitlab-secrets.json 값 복사
+2. gitaly, praefect 노드에  /etc/gitlab/gitlab-secrets.json 로 붙여넣기
+3. gitlay, praefect 노드 reconfigure
+ 
 
 ## 확인
 
