@@ -51,8 +51,11 @@
       register: template
 
     - name: Configure GitLab
-      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
+      ansible.builtin.shell: gitlab-ctl reconfigure
       register: reconfigure_output
+      ignore_errors: yes
+      retries: 3
+      delay: 30
 
     - name: DB migration
       ansible.builtin.shell: gitlab-rake gitlab:db:configure
@@ -72,16 +75,16 @@
       register: template2
 
     - name: Configure GitLab Again
-      ansible.builtin.shell: "/opt/gitlab/bin/gitlab-ctl reconfigure"
-      register: reconfigure_2_output
+      ansible.builtin.shell: gitlab-ctl reconfigure
+      register: reconfigure2_output
+      ignore_errors: yes
+      retries: 3
+      delay: 30
 
     - name: Skip auto reconfigure
       file:
         path: /etc/gitlab/skip-auto-reconfigure
         state: touch
-
-    - name: Re-run gitlab-ctl reconfigure on leader
-      command: gitlab-ctl reconfigure 
 
     - name: Check GitLab status
       command: "/opt/gitlab/bin/gitlab-ctl status"
@@ -98,7 +101,7 @@
 
     - name: Show reconfigure2 output
       debug:
-        var: reconfigure_2_output.stdout_lines
+        var: reconfigure2_output.stdout_lines
 
     - name: Show status output
       debug:
