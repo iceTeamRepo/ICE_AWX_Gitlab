@@ -101,7 +101,7 @@
       ignore_errors: yes
       when: inventory_hostname == (groups['rails'] | sort) | first
       
-    # 기타 모듈 후처리 작업 #########################################################
+    # Pgbouncer 서버 설정 #########################################################
     - name: Create .pgpass if PgBouncer node
       shell: |
         echo -e "{{ pgbouncer_password | default('pgbouncerpassword') }}\n{{ pgbouncer_password | default('pgbouncerpassword') }}" | sudo gitlab-ctl write-pgpass \
@@ -111,7 +111,33 @@
           --hostuser gitlab-consul
         sudo gitlab-ctl hup pgbouncer
       when: inventory_hostname.startswith('pgbouncer')
+ 
+     # Pgbouncer & Psql 연결 확인 #########################################################
+    - name: Check PgBouncer Status
+      shell: |
+        if ss -tnlp | grep -q ':6432'; then
+          echo "PgBouncer already listening on port 6432"
+          exit 0
+        else
+          echo "Restarting PgBouncer..."
+          gitlab-ctl restart pgbouncer
+          exit 1
+        fi
+      register: pgbouncer_port_check
+      retries: 3
+      delay: 3
+      until: pgbouncer_port_check.rc == 0
+      ignore_errors: true
+      when: inventory_hostname.startswith('pgbouncer')
 
+    - name: Check PgBouncer to psql
+      shell: |
+        PGPASSWORD=pgbouncerpassword \
+        /opt/gitlab/embedded/bin/psql -h {{ hostvars[inventory_hostname].ansible_host }} -p 6432 -U pgbouncer -d gitlabhq_production -c '\conninfo'
+      ignore_errors: true
+      when: inventory_hostname.startswith('pgbouncer')
+      
+    # Praefect DB 서버 설정 #########################################################
     - name: Setup Praefect DB user
       shell: |
         /opt/gitlab/embedded/bin/psql -U gitlab-psql -h "127.0.0.1" -d template1 <<EOF
@@ -126,6 +152,7 @@
         EOF
       when: inventory_hostname.startswith('praefect_db')
 
+    # Gitaly 서버 설정 #########################################################
     - name: Prepare Gitaly repo directory
       file:
         path: /var/opt/gitlab/git-data/repositories
@@ -133,6 +160,7 @@
         mode: '0777'
       when: inventory_hostname.startswith('gitaly')
 
+    # Skip auto reconfigure 설정 #########################################################
     - name: Skip auto reconfigure
       file:
         path: /etc/gitlab/skip-auto-reconfigure
