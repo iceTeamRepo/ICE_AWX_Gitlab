@@ -167,8 +167,8 @@
         state: touch
       when: inventory_hostname == praefect_leader or inventory_hostname.startswith('rails')
 
-    # Secret JSON 일치설정 ######################################################### 
-    - name: Copy GitLab secrets  
+    # Secret JSON 일치설정 #########################################################
+    - name: Copy GitLab secrets from primary Rails node
       fetch:
         src: /etc/gitlab/gitlab-secrets.json
         dest: /tmp/gitlab-secrets-from-rails/
@@ -177,22 +177,22 @@
       run_once: true
       register: fetch_result
 
-    - name: Set global fact if secrets fetched
+    - name: Set fact with fetch path
       set_fact:
         secrets_fetched: true
+        secrets_local_path: "{{ fetch_result.dest }}"
       when: fetch_result is succeeded
       run_once: true
-      delegate_to: localhost  # <-- 모든 노드에서 공유되는 fact로 등록됨
+      delegate_to: localhost
 
-    - name: Ensure secrets_fetched is defined (for all hosts)
+    - name: Ensure secrets_fetched and path are defined (for all hosts)
       set_fact:
         secrets_fetched: "{{ secrets_fetched | default(false) }}"
-      # 이 task는 모든 노드에서 실행됨
-      # run_once 없음 → 각 노드에 로컬로 설정됨
+        secrets_local_path: "{{ secrets_local_path | default('') }}"
 
     - name: Share GitLab secrets
       copy:
-        src: "/tmp/gitlab-secrets-from-rails/gitlab-secrets.json"
+        src: "{{ secrets_local_path }}"
         dest: /etc/gitlab/gitlab-secrets.json
         owner: root
         group: root
@@ -215,7 +215,7 @@
           (inventory_hostname in groups['gitaly'])
         )
 
-    # 점검 #################################################3
+    # 점검 #################################################
     - name: GitLab status check
       command: /opt/gitlab/bin/gitlab-ctl status
       register: status_output
