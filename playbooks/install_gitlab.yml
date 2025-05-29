@@ -175,11 +175,11 @@
     - name: Show outputs
       debug:
         msg:
-          - "reconfigure: {{ reconfigure_output.stdout_lines }}"
-          - "reconfigure2: {{ reconfigure2_output.stdout_lines }}"
-          - "status: {{ status_output.stdout_lines }}"
-          - "consul: {{ consul_members_output.stdout_lines | default('') }}"
-          - "patroni: {{ patroni_members_output.stdout_lines | default('') }}"
-          - "praefect: {{ praefect_combined_output.stdout_lines | default('') }}"
-          - "gitaly: {{ gitaly_check_output.stdout_lines | default('') }}"
-          - "db_migration: {{ db_migration_result.stdout_lines | default('') }}"
+          - "reconfigure: {{ reconfigure_output.stdout_lines if (reconfigure_output is defined and 'stdout_lines' in reconfigure_output) else '' }}"
+          - "reconfigure2: {{ reconfigure2_output.stdout_lines if (reconfigure2_output is defined and 'stdout_lines' in reconfigure2_output) else '' }}"
+          - "status: {{ status_output.stdout_lines if (status_output is defined and 'stdout_lines' in status_output) else '' }}"
+          - "consul: {{ consul_members_output.stdout_lines if (consul_members_output is defined and 'stdout_lines' in consul_members_output) else '' }}"
+          - "patroni: {{ patroni_members_output.stdout_lines if (patroni_members_output is defined and 'stdout_lines' in patroni_members_output) else '' }}"
+          - "praefect: {{ praefect_combined_output.stdout_lines if (praefect_combined_output is defined and 'stdout_lines' in praefect_combined_output) else '' }}"
+          - "gitaly: {{ gitaly_check_output.stdout_lines if (gitaly_check_output is defined and 'stdout_lines' in gitaly_check_output) else '' }}"
+          - "db_migration: {{ db_migration_result.stdout_lines if (db_migration_result is defined and 'stdout_lines' in db_migration_result) else '' }}"
