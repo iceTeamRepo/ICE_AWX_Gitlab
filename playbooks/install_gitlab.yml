@@ -167,6 +167,46 @@
         state: touch
       when: inventory_hostname == praefect_leader or inventory_hostname.startswith('rails')
 
+    # Secret JSON 일치설정 #########################################################
+    - name: Copy GitLab secrets  
+      fetch:
+        src: /etc/gitlab/gitlab-secrets.json
+        dest: /tmp/gitlab-secrets-from-rails/
+        flat: true
+      when: inventory_hostname == (groups['rails'] | sort) | first
+      run_once: true
+      register: fetch_result
+
+    - name: Set fact to indicate fetch done
+      set_fact:
+        secrets_fetched: true
+      when: fetch_result is succeeded
+      run_once: true
+    
+    - name: Share GitLab secrets
+      copy:
+        src: "/tmp/gitlab-secrets-from-rails/gitlab-secrets.json"
+        dest: /etc/gitlab/gitlab-secrets.json
+        owner: root
+        group: root
+        mode: '0600'
+      when: >
+        ( secrets_fetched | default(false)) and 
+        (
+          (inventory_hostname in groups['praefect']) or
+          (inventory_hostname in groups['gitaly']) or
+          (inventory_hostname.startswith('rails') and inventory_hostname != (groups['rails'] | sort | first))
+        )
+    
+    - name: GitLab Reconfigure Praefect and Gitaly
+      shell: gitlab-ctl reconfigure
+      when: >
+        ( secrets_fetched | default(false)) and 
+        (
+          (inventory_hostname in groups['praefect']) or
+          (inventory_hostname in groups['gitaly']) 
+        )
+
     # 점검 #################################################3
     - name: GitLab status check
       command: /opt/gitlab/bin/gitlab-ctl status

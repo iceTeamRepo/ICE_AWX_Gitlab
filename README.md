@@ -96,6 +96,9 @@
  5. `sidekiq`
  6. `rails`
 
+## 실행후 수동으로 작업할 일
+<!--  -->
+ /etc/gitlab/gitlab-secrets.json
 
 ## 확인
 
