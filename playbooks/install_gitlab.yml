@@ -1,0 +1,183 @@
+---
+- name: Install GitLab HA
+  hosts: '{{ hostname }}'
+  become: true
+  become_user: root
+  serial: '{{ batch_size | default(1) }}'
+
+  vars:
+    praefect_nodes: "{{ groups['praefect'] }}"
+    praefect_leader: "{{ praefect_nodes | sort | first }}"
+    aws_access_key_id: "{{ minio_access_key | default('accesskey') }}"
+    aws_secret_access_key: "{{ minio_secret_key | default('secretkey') }}"
+    db_host: "{{ patroni_leader_ip | default('10.0.10.13') }}"
+    db_port: 5432
+
+  tasks:
+
+    # 기본 패키지 설치
+    - name: Install prerequisite packages
+      apt:
+        name: '{{ item }}'
+        state: latest
+      with_items:
+        - curl
+        - openssh-server
+        - ca-certificates
+        - tzdata
+        - perl
+        - unzip
+        - software-properties-common
+      when: ansible_os_family == "Debian"
+
+    - name: Add GitLab package repository
+      shell: curl -s https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.deb.sh | sudo bash
+      args:
+        creates: /etc/apt/sources.list.d/gitlab_gitlab-ee.list
+
+    - name: Temporarily disable swap
+      command: swapoff -a
+
+    - name: Install GitLab
+      apt:
+        name: gitlab-ee=17.10.1-ee.0
+        state: present
+
+    # DB 마이그레이션용 gitlab.rb 생성
+    - name: Configure gitlab.rb for DB migration
+      template:
+        src: templates/gitlab.rb.j2
+        dest: /etc/gitlab/gitlab.rb
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Clean gitlab.rb
+      shell: |
+        grep -vE '^\s*#|^\s*$' /etc/gitlab/gitlab.rb > /tmp/gitlab.rb.cleaned
+        mv /tmp/gitlab.rb.cleaned /etc/gitlab/gitlab.rb
+        chown root:root /etc/gitlab/gitlab.rb
+        chmod 0600 /etc/gitlab/gitlab.rb
+
+    - name: Run gitlab-ctl reconfigure
+      shell: gitlab-ctl reconfigure
+      register: reconfigure_output
+      retries: 3
+      delay: 30
+      until: reconfigure_output.rc == 0
+      ignore_errors: yes
+
+    - name: DB migration
+      shell: gitlab-rake gitlab:db:configure
+      when: inventory_hostname == (groups['rails'] | sort) | first
+
+    # PgBouncer로 DB 설정 전환
+    - name: Set DB host to PgBouncer after migration
+      set_fact:
+        db_host: "{{ hostvars['haproxy'].ansible_host }}"
+        db_port: 6432
+
+    - name: Update gitlab.rb for PgBouncer
+      template:
+        src: templates/gitlab.rb.j2
+        dest: /etc/gitlab/gitlab.rb
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Clean updated gitlab.rb
+      shell: |
+        grep -vE '^\s*#|^\s*$' /etc/gitlab/gitlab.rb > /tmp/gitlab.rb.cleaned
+        mv /tmp/gitlab.rb.cleaned /etc/gitlab/gitlab.rb
+        chown root:root /etc/gitlab/gitlab.rb
+        chmod 0600 /etc/gitlab/gitlab.rb
+
+    - name: Reconfigure GitLab for PgBouncer
+      shell: gitlab-ctl reconfigure
+      register: reconfigure2_output
+      retries: 3
+      delay: 30
+      until: reconfigure2_output.rc == 0
+      ignore_errors: yes
+
+    # 후처리 작업
+    - name: Create .pgpass if PgBouncer node
+      shell: |
+        echo -e "{{ pgbouncer_password | default('pgbouncerpassword') }}\n{{ pgbouncer_password | default('pgbouncerpassword') }}" | sudo gitlab-ctl write-pgpass \
+          --host 127.0.0.1 \
+          --database pgbouncer \
+          --user pgbouncer \
+          --hostuser gitlab-consul
+        sudo gitlab-ctl hup pgbouncer
+      when: inventory_hostname.startswith('pgbouncer')
+
+    - name: Setup Praefect DB user
+      shell: |
+        /opt/gitlab/embedded/bin/psql -U gitlab-psql -h "127.0.0.1" -d template1 <<EOF
+        CREATE ROLE praefect WITH LOGIN CREATEDB PASSWORD 'praefectpassword';
+        EOF
+      when: inventory_hostname.startswith('praefect_db')
+
+    - name: Setup Praefect DB
+      shell: |
+        PGPASSWORD=praefectpassword /opt/gitlab/embedded/bin/psql -U praefect -h "127.0.0.1" -d template1 <<EOF
+        CREATE DATABASE praefect_production WITH ENCODING=UTF8;
+        EOF
+      when: inventory_hostname.startswith('praefect_db')
+
+    - name: Prepare Gitaly repo directory
+      file:
+        path: /var/opt/gitlab/git-data/repositories
+        state: directory
+        mode: '0777'
+      when: inventory_hostname.startswith('gitaly')
+
+    - name: Skip auto reconfigure
+      file:
+        path: /etc/gitlab/skip-auto-reconfigure
+        state: touch
+      when: inventory_hostname == praefect_leader or inventory_hostname.startswith('sidekiq')
+
+    # 점검
+    - name: GitLab status check
+      command: /opt/gitlab/bin/gitlab-ctl status
+      register: status_output
+      ignore_errors: yes
+
+    - name: Consul members check
+      command: /opt/gitlab/embedded/bin/consul members
+      when: inventory_hostname == (groups['consul'] | sort) | last
+      register: consul_members_output
+      ignore_errors: yes
+
+    - name: Patroni members check
+      command: gitlab-ctl patroni members
+      when: inventory_hostname == (groups['psql'] | sort) | last
+      register: patroni_members_output
+      ignore_errors: yes
+
+    - name: Praefect check
+      shell: |
+        GRPC_TRACE=all GRPC_VERBOSITY=DEBUG gitlab-rake gitlab:praefect:check
+        sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
+      when: inventory_hostname == (groups['praefect'] | sort) | last
+      register: praefect_combined_output
+      ignore_errors: yes
+
+    - name: Gitaly check
+      shell: gitlab-rake gitlab:gitaly:check
+      when: inventory_hostname == (groups['gitaly'] | sort) | last
+      register: gitaly_check_output
+      ignore_errors: yes
+
+    # 출력
+    - name: Show outputs
+      debug:
+        msg:
+          - "reconfigure: {{ reconfigure_output.stdout_lines }}"
+          - "reconfigure2: {{ reconfigure2_output.stdout_lines }}"
+          - "status: {{ status_output.stdout_lines }}"
+          - "consul: {{ consul_members_output.stdout_lines | default('') }}"
+          - "patroni: {{ patroni_members_output.stdout_lines | default('') }}"
+          - "praefect: {{ praefect_combined_output.stdout_lines | default('') }}"
+          - "gitaly: {{ gitaly_check_output.stdout_lines | default('') }}"

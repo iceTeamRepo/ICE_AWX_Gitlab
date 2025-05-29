@@ -17,7 +17,7 @@
 
 [ICE_AWX_Gitlab](https://github.com/iceTeamRepo/ICE_AWX_Gitlab.git)
 
-## 배포
+## Ansible Tower 템플릿 생성
 
 1. `haproxy`
    - playbook
@@ -74,16 +74,16 @@
      - install_gitlab_ha.yml
    - variables
      - hostname: sidekiq1
-     - minio_access_key: <minio access key>
-     - minio_secret_key: <minio secret key>
+     - minio_access_key: 2XElZ6V2CnSRifiUjgjc
+     - minio_secret_key: d1eoyP0jJjLWzwRaqCaIANh3edjGlefaLrZG6LLG
 
 8.  `rails`
     - playbook
       - install_gitlab_ha_rails.yml
     - variables
       - hostname: rails1
-      - minio_access_key: <minio access key>
-      - minio_secret_key: <minio secret key>
+      - minio_access_key: 2XElZ6V2CnSRifiUjgjc
+      - minio_secret_key: d1eoyP0jJjLWzwRaqCaIANh3edjGlefaLrZG6LLG
       - patroni_leader_ip: <patroni leader ip>
 
 9.  `prometheus`
@@ -97,6 +97,16 @@
       - install_gitlab_ex_lb.yml
     - variables
       - hostname: exproxy
+
+## 실행 순서
+
+ 1. `haproxy`, `exproxy`, `consul`
+ 2. `psql`, `redis`, `praefect_db`
+ 3. `pgbouncer`, `praefect`
+ 4. `gitaly`
+ 5. `sidekiq`
+ 6. `rails`
+
 
 ## 확인
 
