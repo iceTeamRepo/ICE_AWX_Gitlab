@@ -167,22 +167,29 @@
         state: touch
       when: inventory_hostname == praefect_leader or inventory_hostname.startswith('rails')
 
-    # Secret JSON 일치설정 #########################################################
+    # Secret JSON 일치설정 ######################################################### 
     - name: Copy GitLab secrets  
       fetch:
         src: /etc/gitlab/gitlab-secrets.json
         dest: /tmp/gitlab-secrets-from-rails/
         flat: true
-      when: inventory_hostname == (groups['rails'] | sort) | first
+      when: inventory_hostname == (groups['rails'] | sort | first)
       run_once: true
       register: fetch_result
 
-    - name: Set fact to indicate fetch done
+    - name: Set global fact if secrets fetched
       set_fact:
         secrets_fetched: true
       when: fetch_result is succeeded
       run_once: true
-    
+      delegate_to: localhost  # <-- 모든 노드에서 공유되는 fact로 등록됨
+
+    - name: Ensure secrets_fetched is defined (for all hosts)
+      set_fact:
+        secrets_fetched: "{{ secrets_fetched | default(false) }}"
+      # 이 task는 모든 노드에서 실행됨
+      # run_once 없음 → 각 노드에 로컬로 설정됨
+
     - name: Share GitLab secrets
       copy:
         src: "/tmp/gitlab-secrets-from-rails/gitlab-secrets.json"
@@ -191,20 +198,20 @@
         group: root
         mode: '0600'
       when: >
-        ( secrets_fetched | default(false)) and 
+        secrets_fetched and
         (
           (inventory_hostname in groups['praefect']) or
           (inventory_hostname in groups['gitaly']) or
           (inventory_hostname.startswith('rails') and inventory_hostname != (groups['rails'] | sort | first))
         )
-    
+
     - name: GitLab Reconfigure Praefect and Gitaly
       shell: gitlab-ctl reconfigure
       when: >
-        ( secrets_fetched | default(false)) and 
+        secrets_fetched and
         (
           (inventory_hostname in groups['praefect']) or
-          (inventory_hostname in groups['gitaly']) 
+          (inventory_hostname in groups['gitaly'])
         )
 
     # 점검 #################################################3
