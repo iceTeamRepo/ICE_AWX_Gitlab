@@ -15,7 +15,7 @@
 
 ### Gitlab Ansible 프로젝트
 
-[ICE_AWX_Gitlab](https://github.com/iceTeamRepo/ICE_AWX_Gitlab.git)
+- https://github.com/iceTeamRepo/ICE_AWX_Gitlab.git
 
 ## Ansible Tower 템플릿 생성
 
@@ -43,7 +43,6 @@
      - install_gitlab.yml
    - variables
      - hostname: psql1, psql2
-     - batch_size: 2
 
 2. `redis`
    - playbook
@@ -82,9 +81,8 @@
       - install_gitlab.yml
     - variables
       - hostname: rails1
-      - minio_access_key: yh66MwPW4GPoJppMWYvQ
-      - minio_secret_key: J6CBh9mrQF1qT782K1lnSkK0RLbjXutALjFFPHNt
-      - patroni_leader_ip: <patroni leader ip> 
+      - minio_access_key: 0n6yJTUXGwLehtDLmvsg
+      - minio_secret_key: EsHbGswvZuGz3DdN3TuJvBt1JQ0EK7OxZm4JsVmH
 
 
 ## 실행 순서

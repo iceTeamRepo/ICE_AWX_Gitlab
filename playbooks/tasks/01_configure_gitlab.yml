@@ -10,7 +10,7 @@
   tasks:
     - name: Template gitlab.rb
       template:
-        src: templates/gitlab.rb.j2
+        src: ../templates/gitlab.rb.j2
         dest: /etc/gitlab/gitlab.rb
         owner: root
         group: root
