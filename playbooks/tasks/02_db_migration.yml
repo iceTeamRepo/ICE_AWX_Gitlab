@@ -11,17 +11,16 @@
     - name: DB migration with retry
       shell: |
         set -e
-        rm -f /tmp/leader_node_db_migration_log.txt
-        gitlab-rake gitlab:db:configure > /tmp/leader_node_db_migration_log.txt 2>&1
+        gitlab-rake gitlab:db:configure
       register: db_migration_result
       retries: 3
       delay: 30
       until: db_migration_result.rc == 0 and
-            ('cannot execute CREATE SCHEMA in a read-only transaction' not in lookup('file', '/tmp/leader_node_db_migration_log.txt'))
+            ('cannot execute CREATE SCHEMA in a read-only transaction' not in db_migration_result.stdout)
       failed_when: db_migration_result.rc != 0 and
-                  ('cannot execute CREATE SCHEMA in a read-only transaction' in lookup('file', '/tmp/leader_node_db_migration_log.txt'))
+                  ('cannot execute CREATE SCHEMA in a read-only transaction' in db_migration_result.stdout)
       when: inventory_hostname == (groups['rails'] | sort | first)
-
+      
     - name: Update gitlab.rb after DB migration 
       template:
         src: templates/gitlab.rb.j2
