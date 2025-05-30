@@ -59,15 +59,24 @@
       shell: gitlab-ctl reconfigure
       register: reconfigure_output
       retries: 3
-      delay: 30
+      delay: 60
       until: reconfigure_output.rc == 0
       ignore_errors: yes
 
     # Rails 서버 설정 #########################################################
-    - name: DB migration
-      shell: gitlab-rake gitlab:db:configure
-      when: inventory_hostname == (groups['rails'] | sort) | first
+    - name: DB migration with retry
+      shell: |
+        set -e
+        rm -f /tmp/leader_node_db_migration_log.txt
+        gitlab-rake gitlab:db:configure > /tmp/leader_node_db_migration_log.txt 2>&1
+      when: inventory_hostname == (groups['rails'] | sort | first)
       register: db_migration_result
+      retries: 3
+      delay: 30
+      until: db_migration_result.rc == 0 and
+            ('cannot execute CREATE SCHEMA in a read-only transaction' not in lookup('file', '/tmp/leader_node_db_migration_log.txt'))
+      failed_when: db_migration_result.rc != 0 and
+                  ('cannot execute CREATE SCHEMA in a read-only transaction' in lookup('file', '/tmp/leader_node_db_migration_log.txt'))
 
     - name: Set DB host to haproxy after migration
       set_fact:
@@ -96,11 +105,15 @@
       shell: gitlab-ctl reconfigure
       register: reconfigure2_output
       retries: 3
-      delay: 30
+      delay: 60
       until: reconfigure2_output.rc == 0
       ignore_errors: yes
       when: inventory_hostname == (groups['rails'] | sort) | first
-      
+
+    - name: Reconfigure GitLab
+      shell: gitlab-ctl restart 
+      when: inventory_hostname == (groups['rails'] | sort) | first
+
     # Pgbouncer 서버 설정 #########################################################
     - name: Create .pgpass if PgBouncer node
       shell: |
@@ -110,6 +123,7 @@
           --user pgbouncer \
           --hostuser gitlab-consul
         sudo gitlab-ctl hup pgbouncer
+        sudo gitlab-ctl restart
       when: inventory_hostname.startswith('pgbouncer')
  
      # Pgbouncer & Psql 연결 확인 #########################################################
@@ -120,37 +134,35 @@
           exit 0
         else
           echo "Restarting PgBouncer..."
-          gitlab-ctl restart pgbouncer
+          gitlab-ctl restart
           exit 1
         fi
       register: pgbouncer_port_check
-      retries: 3
-      delay: 3
+      retries: 5
+      delay: 60
       until: pgbouncer_port_check.rc == 0
       ignore_errors: true
       when: inventory_hostname.startswith('pgbouncer')
 
-    - name: Overwrite /var/opt/gitlab/consul/databases.ini with PgBouncer config
-      copy:
-        dest: /var/opt/gitlab/consul/databases.ini
-        content: |
-          [databases]
-          gitlabhq_production = host={{ patroni_leader_ip | default('10.0.10.13') }} port=5432 dbname=gitlabhq_production user=pgbouncer
-        owner: root
-        group: root
-        mode: '0644'
-        force: true
-      register: db_ini_result
-      when: inventory_hostname.startswith('pgbouncer')
+    #- name: Overwrite /var/opt/gitlab/consul/databases.ini with PgBouncer config
+    #  copy:
+    #    dest: /var/opt/gitlab/consul/databases.ini
+    #    content: |
+    #      [databases]
+    #      gitlabhq_production = host={{ patroni_leader_ip | default('10.0.10.13') }} port=5432 dbname=gitlabhq_production user=pgbouncer
+    #    owner: root
+    #    group: root
+    #    mode: '0644'
+    #    force: true
+    #  register: db_ini_result
+    #  when: inventory_hostname.startswith('pgbouncer')
 
-    - name: Restart PgBouncer if config changed
-      command: gitlab-ctl restart pgbouncer
-      when: db_ini_result.changed
+    #- name: Restart PgBouncer if config changed
+    #  command: gitlab-ctl restart pgbouncer
+    #  when: db_ini_result.changed
 
     - name: Check PgBouncer to psql
-      shell: |
-        PGPASSWORD=pgbouncerpassword \
-        /opt/gitlab/embedded/bin/psql -h {{ hostvars[inventory_hostname].ansible_host }} -p 6432 -U pgbouncer -d gitlabhq_production -c '\conninfo'
+      shell: PGPASSWORD=pgbouncerpassword /opt/gitlab/embedded/bin/psql -h {{ hostvars[inventory_hostname].ansible_host }} -p 6432 -U pgbouncer -d gitlabhq_production -c '\conninfo'
       ignore_errors: true
       when: inventory_hostname.startswith('pgbouncer')
       

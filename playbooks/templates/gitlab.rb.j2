@@ -868,6 +868,7 @@ gitlab_rails['auto_migrate'] = false
 # gitlab_rails['db_database_tasks'] = true
 
 {% if 'rails' in inventory_hostname %}
+gitlab_rails['db_username'] = 'gitlab'
 gitlab_rails['db_host'] = '{{ db_host | default(hostvars["haproxy"].ansible_host) }}'
 gitlab_rails['db_port'] = {{ db_port | default(6432) }}
 gitlab_rails['db_password'] = 'psqlpassword'
