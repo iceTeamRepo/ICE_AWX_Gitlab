@@ -101,19 +101,6 @@
         chmod 0600 /etc/gitlab/gitlab.rb
       when: inventory_hostname == (groups['rails'] | sort) | first
 
-    - name: Reconfigure GitLab
-      shell: gitlab-ctl reconfigure
-      register: reconfigure2_output
-      retries: 3
-      delay: 60
-      until: reconfigure2_output.rc == 0
-      ignore_errors: yes
-      when: inventory_hostname == (groups['rails'] | sort) | first
-
-    - name: Reconfigure GitLab
-      shell: gitlab-ctl restart 
-      when: inventory_hostname == (groups['rails'] | sort) | first
-
     # Pgbouncer 서버 설정 #########################################################
     - name: Create .pgpass if PgBouncer node
       shell: |
@@ -189,14 +176,25 @@
         mode: '0777'
       when: inventory_hostname.startswith('gitaly')
 
-    # Skip auto reconfigure 설정 #########################################################
+    # 점검 #################################################
     - name: Skip auto reconfigure
       file:
         path: /etc/gitlab/skip-auto-reconfigure
         state: touch
       when: inventory_hostname == praefect_leader or inventory_hostname.startswith('rails')
 
-    # 점검 #################################################
+    - name: Reconfigure GitLab
+      shell: gitlab-ctl reconfigure
+      register: reconfigure2_output
+      retries: 3
+      delay: 60
+      until: reconfigure2_output.rc == 0
+      ignore_errors: yes  
+
+    - name: Restart GitLab
+      shell: gitlab-ctl restart 
+      ignore_errors: yes  
+
     - name: GitLab status check
       command: /opt/gitlab/bin/gitlab-ctl status
       register: status_output
@@ -234,15 +232,38 @@
       register: gitlab_check_output
 
     # 출력 ##########################################################
-    - name: Show outputs
+    - name: Show reconfigure output
       debug:
-        msg:
-          - "reconfigure: {{ reconfigure_output.stdout_lines if (reconfigure_output is defined and 'stdout_lines' in reconfigure_output) else '' }}"
-          - "reconfigure2: {{ reconfigure2_output.stdout_lines if (reconfigure2_output is defined and 'stdout_lines' in reconfigure2_output) else '' }}"
-          - "status: {{ status_output.stdout_lines if (status_output is defined and 'stdout_lines' in status_output) else '' }}"
-          - "consul: {{ consul_members_output.stdout_lines if (consul_members_output is defined and 'stdout_lines' in consul_members_output) else '' }}"
-          - "patroni: {{ patroni_members_output.stdout_lines if (patroni_members_output is defined and 'stdout_lines' in patroni_members_output) else '' }}"
-          - "praefect: {{ praefect_combined_output.stdout_lines if (praefect_combined_output is defined and 'stdout_lines' in praefect_combined_output) else '' }}"
-          - "gitaly: {{ gitaly_check_output.stdout_lines if (gitaly_check_output is defined and 'stdout_lines' in gitaly_check_output) else '' }}"
-          - "db_migration: {{ db_migration_result.stdout_lines if (db_migration_result is defined and 'stdout_lines' in db_migration_result) else '' }}"
-          - "gitlab_check: {{ gitlab_check_output.stdout_lines if (gitlab_check_output is defined and 'stdout_lines' in gitlab_check_output) else '' }}"
+        msg: "{{ reconfigure_output.stdout_lines if (reconfigure_output is defined and 'stdout_lines' in reconfigure_output) else '' }}"
+
+    - name: Show reconfigure2 output
+      debug:
+        msg: "{{ reconfigure2_output.stdout_lines if (reconfigure2_output is defined and 'stdout_lines' in reconfigure2_output) else '' }}"
+
+    - name: Show status output
+      debug:
+        msg: "{{ status_output.stdout_lines if (status_output is defined and 'stdout_lines' in status_output) else '' }}"
+
+    - name: Show consul members output
+      debug:
+        msg: "{{ consul_members_output.stdout_lines if (consul_members_output is defined and 'stdout_lines' in consul_members_output) else '' }}"
+
+    - name: Show patroni members output
+      debug:
+        msg: "{{ patroni_members_output.stdout_lines if (patroni_members_output is defined and 'stdout_lines' in patroni_members_output) else '' }}"
+
+    - name: Show praefect combined output
+      debug:
+        msg: "{{ praefect_combined_output.stdout_lines if (praefect_combined_output is defined and 'stdout_lines' in praefect_combined_output) else '' }}"
+
+    - name: Show gitaly check output
+      debug:
+        msg: "{{ gitaly_check_output.stdout_lines if (gitaly_check_output is defined and 'stdout_lines' in gitaly_check_output) else '' }}"
+
+    - name: Show DB migration result
+      debug:
+        msg: "{{ db_migration_result.stdout_lines if (db_migration_result is defined and 'stdout_lines' in db_migration_result) else '' }}"
+
+    - name: Show gitlab check output
+      debug:
+        msg: "{{ gitlab_check_output.stdout_lines if (gitlab_check_output is defined and 'stdout_lines' in gitlab_check_output) else '' }}"
