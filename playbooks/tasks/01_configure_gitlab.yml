@@ -1,0 +1,31 @@
+---
+- name: Configure gitlab.rb and reconfigure
+  hosts: '{{ hostname }}'
+  become: true
+
+  vars:
+    db_host: "{{ patroni_leader_ip | default('10.0.10.13') }}"
+    db_port: 5432
+
+  tasks:
+    - name: Template gitlab.rb
+      template:
+        src: templates/gitlab.rb.j2
+        dest: /etc/gitlab/gitlab.rb
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Clean gitlab.rb
+      shell: |
+        grep -vE '^\s*#|^\s*$' /etc/gitlab/gitlab.rb > /tmp/gitlab.rb.cleaned
+        mv /tmp/gitlab.rb.cleaned /etc/gitlab/gitlab.rb
+        chmod 0600 /etc/gitlab/gitlab.rb
+
+    - name: Reconfigure GitLab
+      shell: gitlab-ctl reconfigure
+      register: reconfigure_output
+      retries: 3
+      delay: 60
+      until: reconfigure_output.rc == 0
+      ignore_errors: yes

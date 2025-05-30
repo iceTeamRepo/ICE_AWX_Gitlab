@@ -1,0 +1,12 @@
+---
+- name: Prepare Gitaly directories
+  hosts: '{{ hostname }}'
+  become: true
+
+  tasks:
+    - name: Create repositories dir
+      file:
+        path: /var/opt/gitlab/git-data/repositories
+        state: directory
+        mode: '0777'
+      when: inventory_hostname.startswith('gitaly')

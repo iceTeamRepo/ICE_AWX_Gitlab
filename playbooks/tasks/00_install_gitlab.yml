@@ -1,0 +1,31 @@
+---
+- name: Install GitLab packages
+  hosts: '{{ hostname }}'
+  become: true
+  become_user: root
+  serial: '{{ batch_size | default(1) }}'
+
+  tasks:
+    - name: Install prerequisite packages
+      apt:
+        name: '{{ item }}'
+        state: latest
+      with_items:
+        - curl
+        - openssh-server
+        - ca-certificates
+        - tzdata
+        - perl
+        - unzip
+        - software-properties-common
+      when: ansible_os_family == "Debian"
+
+    - name: Add GitLab package repository
+      shell: curl -s https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.deb.sh | sudo bash
+      args:
+        creates: /etc/apt/sources.list.d/gitlab_gitlab-ee.list
+
+    - name: Install GitLab
+      apt:
+        name: gitlab-ee=17.10.1-ee.0
+        state: present

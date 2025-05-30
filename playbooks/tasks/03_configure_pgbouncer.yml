@@ -1,0 +1,31 @@
+---
+- name: Configure PgBouncer and check connectivity
+  hosts: '{{ hostname }}'
+  become: true
+
+  tasks:
+    - name: Create .pgpass if PgBouncer node
+      shell: |
+        echo -e "{{ pgbouncer_password | default('pgbouncerpassword') }}\n{{ pgbouncer_password | default('pgbouncerpassword') }}" | sudo gitlab-ctl write-pgpass \
+          --host 127.0.0.1 \
+          --database pgbouncer \
+          --user pgbouncer \
+          --hostuser gitlab-consul
+        sudo gitlab-ctl hup pgbouncer
+        sudo gitlab-ctl restart
+      when: inventory_hostname.startswith('pgbouncer')
+
+    - name: Check PgBouncer Status
+      shell: |
+        if ss -tnlp | grep -q ':6432'; then exit 0; else gitlab-ctl restart; exit 1; fi
+      register: pgbouncer_port_check
+      retries: 5
+      delay: 60
+      until: pgbouncer_port_check.rc == 0
+      ignore_errors: true
+      when: inventory_hostname.startswith('pgbouncer')
+
+    - name: Check PgBouncer to psql
+      shell: PGPASSWORD=pgbouncerpassword /opt/gitlab/embedded/bin/psql -h {{ hostvars[inventory_hostname].ansible_host }} -p 6432 -U pgbouncer -d gitlabhq_production -c '\conninfo'
+      ignore_errors: true
+      when: inventory_hostname.startswith('pgbouncer')

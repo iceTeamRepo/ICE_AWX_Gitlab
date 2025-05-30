@@ -1,0 +1,8 @@
+---
+- import_playbook: tasks/00_install_gitlab.yml
+- import_playbook: tasks/01_configure_gitlab.yml
+- import_playbook: tasks/02_db_migration.yml
+- import_playbook: tasks/03_configure_pgbouncer.yml
+- import_playbook: tasks/04_setup_praefect.yml
+- import_playbook: tasks/05_setup_gitaly.yml
+- import_playbook: tasks/06_post_configure.yml

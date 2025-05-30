@@ -1,0 +1,88 @@
+---
+- name: Final configuration and service validation
+  hosts: '{{ hostname }}'
+  become: true
+
+  tasks:
+    - name: Skip auto reconfigure
+      file:
+        path: /etc/gitlab/skip-auto-reconfigure
+        state: touch
+      when: inventory_hostname == (groups['praefect'] | sort | first) or inventory_hostname.startswith('rails')
+
+    - name: Reconfigure GitLab
+      shell: gitlab-ctl reconfigure
+      register: reconfigure2_output
+      retries: 3
+      delay: 60
+      until: reconfigure2_output.rc == 0
+      ignore_errors: yes
+
+    - name: Restart GitLab
+      shell: gitlab-ctl restart
+      ignore_errors: yes
+
+    - name: GitLab status check
+      command: /opt/gitlab/bin/gitlab-ctl status
+      register: status_output
+      ignore_errors: yes
+
+    - name: Consul members check
+      command: /opt/gitlab/embedded/bin/consul members
+      register: consul_members_output
+      ignore_errors: yes
+      when: inventory_hostname == (groups['consul'] | sort) | last
+
+    - name: Patroni members check
+      command: gitlab-ctl patroni members
+      register: patroni_members_output
+      ignore_errors: yes
+      when: inventory_hostname == (groups['psql'] | sort) | last
+
+    - name: Praefect check
+      shell: |
+        GRPC_TRACE=all GRPC_VERBOSITY=DEBUG gitlab-rake gitlab:praefect:check
+        sudo -u git /opt/gitlab/embedded/bin/praefect -config /var/opt/gitlab/praefect/config.toml sql-ping
+      register: praefect_combined_output
+      ignore_errors: yes
+      when: inventory_hostname == (groups['praefect'] | sort) | last
+
+    - name: Gitaly check
+      shell: gitlab-rake gitlab:gitaly:check
+      register: gitaly_check_output
+      ignore_errors: yes
+      when: inventory_hostname == (groups['gitaly'] | sort) | last
+
+    - name: Rails check
+      shell: gitlab-rake gitlab:check
+      register: gitlab_check_output
+      ignore_errors: yes
+      when: inventory_hostname == (groups['rails'] | sort) | last
+
+    - name: Show GitLab reconfigure output
+      debug:
+        msg: "{{ reconfigure2_output.stdout_lines | default([]) }}"
+
+    - name: Show GitLab status
+      debug:
+        msg: "{{ status_output.stdout_lines | default([]) }}"
+
+    - name: Show consul members output
+      debug:
+        msg: "{{ consul_members_output.stdout_lines | default([]) }}"
+
+    - name: Show patroni members output
+      debug:
+        msg: "{{ patroni_members_output.stdout_lines | default([]) }}"
+
+    - name: Show praefect check output
+      debug:
+        msg: "{{ praefect_combined_output.stdout_lines | default([]) }}"
+
+    - name: Show gitaly check output
+      debug:
+        msg: "{{ gitaly_check_output.stdout_lines | default([]) }}"
+
+    - name: Show rails check output
+      debug:
+        msg: "{{ gitlab_check_output.stdout_lines | default([]) }}"

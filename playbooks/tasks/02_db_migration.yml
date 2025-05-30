@@ -1,0 +1,38 @@
+---
+- name: GitLab DB migration and DB host switching
+  hosts: '{{ hostname }}'
+  become: true
+  vars:
+    db_host: "{{ hostvars['haproxy'].ansible_host }}"
+    db_port: 6432
+
+  tasks:
+    - name: DB migration with retry
+      shell: |
+        set -e
+        rm -f /tmp/leader_node_db_migration_log.txt
+        gitlab-rake gitlab:db:configure > /tmp/leader_node_db_migration_log.txt 2>&1
+      when: inventory_hostname == (groups['rails'] | sort | first)
+      register: db_migration_result
+      retries: 3
+      delay: 30
+      until: db_migration_result.rc == 0 and
+            ('cannot execute CREATE SCHEMA in a read-only transaction' not in lookup('file', '/tmp/leader_node_db_migration_log.txt'))
+      failed_when: db_migration_result.rc != 0 and
+                  ('cannot execute CREATE SCHEMA in a read-only transaction' in lookup('file', '/tmp/leader_node_db_migration_log.txt'))
+
+    - name: Update gitlab.rb after DB migration 
+      template:
+        src: templates/gitlab.rb.j2
+        dest: /etc/gitlab/gitlab.rb
+        owner: root
+        group: root
+        mode: '0600'
+      when: inventory_hostname == (groups['rails'] | sort) | first
+
+    - name: Clean updated gitlab.rb after DB migration 
+      shell: |
+        grep -vE '^\s*#|^\s*$' /etc/gitlab/gitlab.rb > /tmp/gitlab.rb.cleaned
+        mv /tmp/gitlab.rb.cleaned /etc/gitlab/gitlab.rb
+        chmod 0600 /etc/gitlab/gitlab.rb
+      when: inventory_hostname == (groups['rails'] | sort) | first
