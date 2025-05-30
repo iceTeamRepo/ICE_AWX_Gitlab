@@ -1,8 +1,8 @@
 ---
 - name: Configure PgBouncer and check connectivity
   hosts: '{{ hostname }}'
-  become: true
-
+  become: true  
+  become_user: root
   tasks:
     - name: Create .pgpass if PgBouncer node
       shell: |

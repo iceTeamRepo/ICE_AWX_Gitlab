@@ -2,6 +2,7 @@
 - name: Final configuration and service validation
   hosts: '{{ hostname }}'
   become: true
+  become_user: root
 
   tasks:
     - name: Skip auto reconfigure

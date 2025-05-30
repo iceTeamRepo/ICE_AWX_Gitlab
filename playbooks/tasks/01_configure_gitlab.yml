@@ -2,7 +2,7 @@
 - name: Configure gitlab.rb and reconfigure
   hosts: '{{ hostname }}'
   become: true
-
+  become_user: root
   vars:
     db_host: "{{ patroni_leader_ip | default('10.0.10.13') }}"
     db_port: 5432

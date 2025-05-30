@@ -2,7 +2,7 @@
 - name: Prepare Gitaly directories
   hosts: '{{ hostname }}'
   become: true
-
+  become_user: root
   tasks:
     - name: Create repositories dir
       file:
