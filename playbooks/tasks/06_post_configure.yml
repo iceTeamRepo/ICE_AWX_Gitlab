@@ -40,6 +40,21 @@
       ignore_errors: yes
       when: inventory_hostname == (groups['psql'] | sort) | last
 
+    - name: Check PgBouncer port open
+      shell: |
+        if ss -tnlp | grep -q ':6432'; then exit 0; else gitlab-ctl restart; exit 1; fi
+      register: pgbouncer_port_check
+      retries: 5
+      delay: 60
+      until: pgbouncer_port_check.rc == 0
+      ignore_errors: true
+      when: inventory_hostname.startswith('pgbouncer')
+
+    - name: Check PgBouncer to psql
+      shell: PGPASSWORD=pgbouncerpassword /opt/gitlab/embedded/bin/psql -h {{ hostvars[inventory_hostname].ansible_host }} -p 6432 -U pgbouncer -d gitlabhq_production -c '\conninfo'
+      ignore_errors: true
+      when: inventory_hostname.startswith('pgbouncer')
+
     - name: Praefect check
       shell: |
         GRPC_TRACE=all GRPC_VERBOSITY=DEBUG gitlab-rake gitlab:praefect:check
