@@ -4,6 +4,8 @@
   become: true
   become_user: root
   vars:
+    aws_access_key_id: "{{ minio_access_key | default('accesskey') }}"
+    aws_secret_access_key: "{{ minio_secret_key | default('secretkey') }}"
     db_host: "{{ patroni_leader_ip | default('10.0.10.13') }}"
     db_port: 5432
 
