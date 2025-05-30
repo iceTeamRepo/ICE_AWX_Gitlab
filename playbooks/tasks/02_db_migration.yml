@@ -4,6 +4,8 @@
   become: true
   become_user: root
   vars:
+    aws_access_key_id: "{{ minio_access_key | default('accesskey') }}"
+    aws_secret_access_key: "{{ minio_secret_key | default('secretkey') }}"  
     db_host: "{{ hostvars['haproxy'].ansible_host }}"
     db_port: 6432
 
@@ -20,7 +22,7 @@
       failed_when: db_migration_result.rc != 0 and
                   ('cannot execute CREATE SCHEMA in a read-only transaction' in db_migration_result.stdout)
       when: inventory_hostname == (groups['rails'] | sort | first)
-      
+
     - name: Update gitlab.rb after DB migration 
       template:
         src: templates/gitlab.rb.j2
