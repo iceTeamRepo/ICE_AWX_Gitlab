@@ -130,6 +130,23 @@
       ignore_errors: true
       when: inventory_hostname.startswith('pgbouncer')
 
+    - name: Overwrite /var/opt/gitlab/consul/databases.ini with PgBouncer config
+      copy:
+        dest: /var/opt/gitlab/consul/databases.ini
+        content: |
+          [databases]
+          gitlabhq_production = host={{ patroni_leader_ip | default('10.0.10.13') }} port=5432 dbname=gitlabhq_production user=pgbouncer
+        owner: root
+        group: root
+        mode: '0644'
+        force: true
+      register: db_ini_result
+      when: inventory_hostname.startswith('pgbouncer')
+
+    - name: Restart PgBouncer if config changed
+      command: gitlab-ctl restart pgbouncer
+      when: db_ini_result.changed
+
     - name: Check PgBouncer to psql
       shell: |
         PGPASSWORD=pgbouncerpassword \

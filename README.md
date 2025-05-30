@@ -82,8 +82,8 @@
       - install_gitlab.yml
     - variables
       - hostname: rails1
-      - minio_access_key: i1k3sTb6f7cP9p99VpDF
-      - minio_secret_key: nfBrCInZOdBawSGmGELWRF9uJDDqXK6RmdntynOu
+      - minio_access_key: yh66MwPW4GPoJppMWYvQ
+      - minio_secret_key: J6CBh9mrQF1qT782K1lnSkK0RLbjXutALjFFPHNt
       - patroni_leader_ip: <patroni leader ip> 
 
 
@@ -124,3 +124,8 @@
     # rails 확인
     $ sudo gitlab-rake gitlab:check
   ```
+
+## Reference
+
+- [Gitlab 아키텍처](https://docs.gitlab.com/administration/reference_architectures/#requirements)
+- [Gitlab 설치](https://about.gitlab.com/install/#ubuntu)
