@@ -21,6 +21,8 @@
 
     - name: Restart GitLab
       shell: gitlab-ctl restart
+      retries: 3
+      delay: 90
       ignore_errors: yes
 
     - name: GitLab status check
