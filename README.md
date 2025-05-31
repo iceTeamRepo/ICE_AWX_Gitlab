@@ -81,8 +81,8 @@
       - install_gitlab.yml
     - variables
       - hostname: rails1
-      - minio_access_key: 0n6yJTUXGwLehtDLmvsg
-      - minio_secret_key: EsHbGswvZuGz3DdN3TuJvBt1JQ0EK7OxZm4JsVmH
+      - minio_access_key: dUwW4E86xmCJI5wSsofk
+      - minio_secret_key: tkXBmx73WLIMfQdENpDdznOsXLIHUELlisSEaMWx
 
 
 ## 실행 순서
