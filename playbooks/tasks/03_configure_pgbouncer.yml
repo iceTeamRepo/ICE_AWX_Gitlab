@@ -12,7 +12,6 @@
           --user pgbouncer \
           --hostuser gitlab-consul
         sudo gitlab-ctl hup pgbouncer
-        sudo gitlab-ctl restart
       when: inventory_hostname.startswith('pgbouncer')
 
 
