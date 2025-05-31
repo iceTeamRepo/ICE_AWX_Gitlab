@@ -88,13 +88,14 @@
 ## 실행 순서
 
  1. `haproxy`, `exproxy`, `consul`
- 2. `psql`, `redis`, `praefect_db`
- 3. `pgbouncer`, `praefect`
- 4. `gitaly`
- 5. `sidekiq`
- 6. `rails`
+ 2. `psql`, 
+ 3. `redis`, 
+ 4. `praefect_db`
+ 5. `pgbouncer`, `praefect`
+ 6. `gitaly`
+ 7. `sidekiq`
+ 8. `rails`
  
-
 ## 실행 후 수행
  
 1. rails 노드의 /etc/gitlab/gitlab-secrets.json 값 복사
