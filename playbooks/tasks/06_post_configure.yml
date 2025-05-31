@@ -20,7 +20,7 @@
       ignore_errors: yes
 
     - name: Restart GitLab
-      shell: gitlab-ctl restart
+      shell: gitlab-ctl stop && gitlab-ctl restart
       retries: 3
       delay: 90
       ignore_errors: yes
