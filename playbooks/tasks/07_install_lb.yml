@@ -1,0 +1,61 @@
+---
+- name: Install GitLab HAProxy (Internal & External)
+  hosts: "{{ hostname }}"
+  become: true
+  become_user: root
+
+  vars:
+    domain: mygitlab.idtice.com
+    cert_path: /etc/ssl/certs/selfsigned.crt
+    key_path: /etc/ssl/private/selfsigned.key
+    combined_pem_path: /etc/ssl/certs/haproxy_cert.pem
+
+  tasks:
+    - name: Install required packages
+      ansible.builtin.apt:
+        name: "{{ ['openssl', 'haproxy'] if inventory_hostname == 'exproxy' else ['haproxy'] }}"
+        state: latest
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Generate self-signed SSL certificate and private key (only for exproxy)
+      shell: |
+        openssl req -x509 -nodes -days 365 \
+          -newkey rsa:2048 \
+          -keyout {{ key_path }} \
+          -out {{ cert_path }} \
+          -subj "/C=KR/ST=Seoul/L=Seoul/O=MyCompany/OU=IT/CN={{ domain }}"
+      args:
+        creates: "{{ cert_path }}"
+      when: inventory_hostname == "exproxy"
+
+    - name: Combine cert and key into HAProxy-compatible PEM (only for exproxy)
+      shell: |
+        cat {{ cert_path }} {{ key_path }} > {{ combined_pem_path }}
+      args:
+        creates: "{{ combined_pem_path }}"
+      when: inventory_hostname == "exproxy"
+
+    - name: Copy HAProxy config for external (SSL)
+      template:
+        src: templates/external-haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+      when: inventory_hostname == "exproxy"
+
+    - name: Copy HAProxy config for internal
+      template:
+        src: templates/internal-haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+      when: inventory_hostname == "haproxy"
+
+    - name: Start and enable HAProxy service
+      ansible.builtin.systemd:
+        name: haproxy
+        state: restarted
+        enabled: true
